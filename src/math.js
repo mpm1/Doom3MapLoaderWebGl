@@ -49,6 +49,12 @@ Vector3.normalized = function(inputVector, outputVector){
     return outputVector;
 }
 
+var Quaternion = function(x, y, z){
+    return result = new Float32Array([x, y, z]);
+}
+Quaternion.zero = Quaternion(0, 0, 0);
+Quaternion.one = Quaternion(1, 1, 1);
+
 var Matrix4 = function( a = 1, b = 0, c = 0, d = 0, 
                         e = 0, f = 1, g = 0, h = 0, 
                         i = 0, j = 0, k = 1, l = 0,

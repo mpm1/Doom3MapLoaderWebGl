@@ -16,7 +16,7 @@ Actor.prototype.draw = function(display){
 }
 
 var Room = function(){
-    this.init(Vector3.zero, )
+    this.init(Vector3.zero, Quaternion.zero, Vector3.one);
 }
 Room.prototype = Object.create(Actor.prototype);
 
