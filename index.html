@@ -1,0 +1,39 @@
+<html>
+    <head>
+        <title>Doom 3: WebGL 2 Test</title>
+
+        <link rel="stylesheet" href="custom.css"/>
+
+        <script src="./lib/jquery-3.4.1.min.js"></script>
+        <!-- zip.js can be found here: https://gildas-lormeau.github.io/zip.js/ -->
+        <script src="./lib/zipjs/WebContent/zip.js"></script>
+        <script type="text/javascript">
+            zip.workerScriptsPath = "./lib/zipjs/WebContent/";
+        </script>
+
+        <!-- Engine Files -->
+        <script src="./src/math.js"></script>
+        <script src="./src/map.js"></script>
+        <script src="./src/display.js"></script>
+        <script src="./src/console.js"></script>
+        <script src="./src/doom3.js"></script>
+    </head>
+    <body>
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="1280" height="720">
+            </canvas>
+
+            <div id="gameConsole">
+                <div class="output"></div>
+                <input type="text" class="input"></input>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input");
+
+            game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
+        </script>
+
+    </body>
+</html>
