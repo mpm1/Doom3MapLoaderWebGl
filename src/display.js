@@ -1,9 +1,12 @@
 function Display(canvas){
 
 }
-Display.prototype.setTransform = function(transform){
+Display.prototype.pushTransform = function(transform){
 
 }
-Display.prototype.draw = function(vertecies, diffuseTexture, normalTexture, specularTexture){
-    
+Display.prototype.popTransform = function(){
+
+}
+Display.prototype.draw = function(vertecies, polygons, material){
+
 }
