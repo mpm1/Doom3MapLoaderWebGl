@@ -1,0 +1,787 @@
+textures/sfx/center_fire
+{
+	qer_editorimage 		textures/sfx/center_fire_d.tga
+	{
+	blend 			diffusemap	
+	map 				textures/sfx/center_fire_d.tga
+	}
+	{
+	maskcolor			
+	map 				textures/sfx/center_fire_mask.tga
+	}
+	{
+	blend  			gl_dst_alpha, gl_one_minus_dst_alpha
+       rotate time * 0.3
+centerScale 1, 1
+	map				textures/sfx/fire_effect_sfx_3.tga
+	}      
+}
+textures/sfx/firedoor
+{
+	qer_editorimage 		textures/sfx/firedoor_d.tga
+	{
+	blend 			diffusemap	
+	map 				textures/sfx/firedoor_d.tga
+	}
+	{
+	maskcolor			
+	map 				textures/sfx/firedoor_mask.tga
+	}
+	{
+	blend  			gl_dst_alpha, gl_one_minus_dst_alpha
+	translate			time * 2, 2
+       rotate time*0.4
+scale		1.5, 1.5
+
+	map				textures/sfx/fire_effect_sfx_2.tga
+	}      
+}
+textures/sfx/firefloor
+{
+	qer_editorimage 		textures/sfx/firefloor_d.tga
+	{
+	blend 			diffusemap	
+	map 				textures/sfx/firefloor_d.tga
+	}
+	{
+	maskcolor			
+	map 				textures/sfx/firefloor_mask.tga
+	}
+	{
+	blend  			gl_dst_alpha, gl_one_minus_dst_alpha
+	translate			time * 2, 2
+       rotate time*0.4
+scale		4, 4
+	map				textures/sfx/fire_effect_sfx.tga
+	}      
+}
+textures/sfx/firewall
+{
+	qer_editorimage 		textures/sfx/firewall_d.tga
+	{
+	blend 			diffusemap	
+	map 				textures/sfx/firewall_d.tga
+	}
+	{
+	maskcolor			
+	map 				textures/sfx/firewall_mask.tga
+	}
+	{
+	blend  			gl_dst_alpha, gl_one_minus_dst_alpha
+	translate			time * 2, 2
+       rotate time*0.4
+scale		4, 4
+	map				textures/sfx/fire_effect_sfx.tga
+	}      
+}
+textures/skies/q3dm1
+{
+		qer_editorimage	textures/skies/quakesky.tga
+	noFragment
+	noshadows
+	noimpact
+	nooverlays
+	{
+		
+		cameraCubeMap	textures/skies/q3dm1/quakesky
+		texgen		skybox
+		texgen			wobblesky .45 .45 .45
+		
+	}
+}
+sfx/qfire_small
+{
+qer_editorimage textures/sfx/qfire_small.tga
+translucent
+//twoSided
+noShadows
+{
+blend add
+map textures/sfx/qfire_small.tga
+vertexColor
+rgb 1
+scale	1,1
+}
+}
+sfx/qfire_small3
+{
+qer_editorimage textures/sfx/qfire_small3.tga
+translucent
+//twoSided
+noShadows
+{
+blend add
+map textures/sfx/qfire_small3.tga
+vertexColor
+rgb 1
+scale	1,1
+}
+}
+sfx/qfire_small2
+{
+qer_editorimage textures/sfx/qfire_small2.tga
+translucent
+//twoSided
+noShadows
+{
+blend add
+map textures/sfx/qfire_small2.tga
+vertexColor
+rgb 1
+scale	1,1
+}
+}
+sfx/qfire_small1
+{
+qer_editorimage textures/sfx/qfire_small1.tga
+translucent
+//twoSided
+noShadows
+{
+blend add
+map textures/sfx/qfire_small1.tga
+vertexColor
+rgb 1
+scale	1,1
+}
+}
+textures/abyse/abyse
+{
+	qer_editorimage textures/base_wall/blink_quake.tga 
+
+	DECAL_MACRO
+	noShadows
+	nonsolid
+	noimpact
+	translucent
+
+	{       
+     	 blend	diffuseMap  //GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
+	 map	textures/base_wall/blink_quake_d.tga 
+
+	 //alphaTest 0.5
+	}
+
+{
+		blend 	add
+		map	textures/base_wall/blink_quake.tga
+		 	rgb (.5 * sintable [.002 + time ]) + .2
+	}
+
+
+}
+models/mapobjects/lion_m
+{
+	qer_editorimage models/mapobjects/lion_m.tga
+	diffusemap models/mapobjects/lion_m.tga
+	// bumpmap models/mapobjects/lion_m_local.tga
+	// specularmap models/mapobjects/lion_m_s.tga
+}
+models/mapobjects/lion
+{
+	qer_editorimage models/mapobjects/lion.tga
+	diffusemap models/mapobjects/lion.tga
+	// bumpmap models/mapobjects/lion_local.tga
+	// specularmap models/mapobjects/lion_s.tga
+}
+models/mapobjects/wallhead02
+{
+	qer_editorimage models/mapobjects/wallhead02.tga
+	diffusemap models/mapobjects/wallhead02.tga
+	// bumpmap models/mapobjects/wallhead02_local.tga
+	// specularmap models/mapobjects/wallhead02_s.tga
+}
+models/mapobjects/storch_tall
+{
+	qer_editorimage models/mapobjects/storch_tall.tga
+	diffusemap models/mapobjects/storch_tall.tga
+	// bumpmap models/mapobjects/storch_tall_local.tga
+	// specularmap models/mapobjects/storch_tall_s.tga
+}
+models/mapobjects/major_h_st
+{
+	qer_editorimage models/mapobjects/major_h_st.tga
+	diffusemap models/mapobjects/major_h_st.tga
+	// bumpmap models/mapobjects/major_h_st_local.tga
+	// specularmap models/mapobjects/major_h_st_s.tga
+}
+models/mapobjects/visor_st
+{
+	qer_editorimage models/mapobjects/visor_st.tga
+	diffusemap models/mapobjects/visor_st.tga
+	// bumpmap models/mapobjects/visor_st_local.tga
+	// specularmap models/mapobjects/visor_st_s.tga
+}
+models/mapobjects/major_st
+{
+	qer_editorimage models/mapobjects/major_st.tga
+	diffusemap models/mapobjects/major_st.tga
+	// bumpmap models/mapobjects/major_st_local.tga
+	// specularmap models/mapobjects/major_st_s.tga
+}
+textures/gothic_block/killblock
+{
+	qer_editorimage textures/gothic_block/killblock.tga
+	diffusemap textures/gothic_block/killblock.tga
+	// bumpmap textures/gothic_block/killblock_local.tga
+	// specularmap textures/gothic_block/killblock_s.tga
+}
+
+textures/gothic_block/blocks15
+{
+	qer_editorimage textures/gothic_block/blocks15.tga
+	diffusemap textures/gothic_block/blocks15.tga
+	// bumpmap textures/gothic_block/blocks15_local.tga
+	// specularmap textures/gothic_block/blocks15_s.tga
+}
+
+textures/gothic_block/killblock_i
+{
+	qer_editorimage textures/gothic_block/killblock_i.tga
+	diffusemap textures/gothic_block/killblock_i.tga
+	// bumpmap textures/gothic_block/killblock_i_local.tga
+	// specularmap textures/gothic_block/killblock_i_s.tga
+}
+
+textures/gothic_trim/pitted_rust3
+{
+	qer_editorimage textures/gothic_trim/pitted_rust3.tga
+	diffusemap textures/gothic_trim/pitted_rust3.tga
+	// bumpmap textures/gothic_trim/pitted_rust3_local.tga
+	// specularmap textures/gothic_trim/pitted_rust3_s.tga
+}
+
+textures/gothic_trim/pitted_rust2
+{
+	qer_editorimage textures/gothic_trim/pitted_rust2.tga
+	diffusemap textures/gothic_trim/pitted_rust2.tga
+	// bumpmap textures/gothic_trim/pitted_rust2_local.tga
+	// specularmap textures/gothic_trim/pitted_rust2_s.tga
+}
+
+textures/gothic_wall/slateroofc
+{
+	qer_editorimage textures/gothic_wall/slateroofc.tga
+	diffusemap textures/gothic_wall/slateroofc.tga
+	bumpmap textures/gothic_wall/slateroofc_b.tga
+	specularmap textures/gothic_wall/slateroofc.tga
+}
+
+textures/gothic_wall/jumptowerwork3g
+{
+	qer_editorimage textures/gothic_wall/jumptowerwork3g.tga
+	diffusemap textures/gothic_wall/jumptowerwork3g.tga
+	// bumpmap textures/gothic_wall/jumptowerwork3g_local.tga
+	// specularmap textures/gothic_wall/jumptowerwork3g_s.tga
+}
+
+textures/gothic_trim/baseboard09_o3
+{
+	qer_editorimage textures/gothic_trim/baseboard09_o3.tga
+	diffusemap textures/gothic_trim/baseboard09_o3.tga
+	// bumpmap textures/gothic_trim/baseboard09_o3_local.tga
+	// specularmap textures/gothic_trim/baseboard09_o3_s.tga
+}
+
+textures/gothic_floor/blocks17floor2
+{
+	qer_editorimage textures/gothic_floor/blocks17floor2.tga
+	diffusemap textures/gothic_floor/blocks17floor2.tga
+	// bumpmap textures/gothic_floor/blocks17floor2_local.tga
+	// specularmap textures/gothic_floor/blocks17floor2_s.tga
+}
+
+textures/gothic_trim/baseboard09_e
+{
+	qer_editorimage textures/gothic_trim/baseboard09_e.tga
+	diffusemap textures/gothic_trim/baseboard09_e.tga
+	// bumpmap textures/gothic_trim/baseboard09_e_local.tga
+	// specularmap textures/gothic_trim/baseboard09_e_s.tga
+}
+
+textures/gothic_ceiling/woodceiling1b_dark
+{
+	qer_editorimage textures/gothic_ceiling/woodceiling1b_dark.tga
+	diffusemap textures/gothic_ceiling/woodceiling1b_dark.tga
+	// bumpmap textures/gothic_ceiling/woodceiling1b_dark_local.tga
+	// specularmap textures/gothic_ceiling/woodceiling1b_dark_s.tga
+}
+
+textures/gothic_trim/baseboard09_c3
+{
+	qer_editorimage textures/gothic_trim/baseboard09_c3.tga
+	diffusemap textures/gothic_trim/baseboard09_c3.tga
+	// bumpmap textures/gothic_trim/baseboard09_c3_local.tga
+	// specularmap textures/gothic_trim/baseboard09_c3_s.tga
+}
+
+textures/gothic_door/km_arena1archfinald_bot
+{
+	qer_editorimage textures/gothic_door/km_arena1archfinald_bot.tga
+	diffusemap textures/gothic_door/km_arena1archfinald_bot.tga
+	bumpmap textures/gothic_door/km_arena1archfinald_bot_b.tga
+	specularmap textures/gothic_door/km_arena1archfinald_bot.tga
+}
+
+textures/gothic_door/km_arena1archfinalc_mid
+{
+	qer_editorimage textures/gothic_door/km_arena1archfinalc_mid.tga
+	diffusemap textures/gothic_door/km_arena1archfinalc_mid.tga
+	bumpmap textures/gothic_door/km_arena1archfinalc_mid_b.tga
+	specularmap textures/gothic_door/km_arena1archfinalc_mid.tga
+}
+
+textures/gothic_door/km_arena1archfinald_mid
+{
+	qer_editorimage textures/gothic_door/km_arena1archfinald_mid.tga
+	diffusemap textures/gothic_door/km_arena1archfinald_mid.tga
+	bumpmap textures/gothic_door/km_arena1archfinald_mid_b.tga
+	specularmap textures/gothic_door/km_arena1archfinald_mid.tga
+}
+
+textures/gothic_door/km_arena1archfinalc_top
+{
+	qer_editorimage textures/gothic_door/km_arena1archfinalc_top.tga
+	diffusemap textures/gothic_door/km_arena1archfinalc_top.tga
+	bumpmap textures/gothic_door/km_arena1archfinalc_top_b.tga
+	specularmap textures/gothic_door/km_arena1archfinalc_top.tga
+}
+
+textures/gothic_trim/skullsvertgray02b
+{
+	qer_editorimage textures/gothic_trim/skullsvertgray02b.tga
+	diffusemap textures/gothic_trim/skullsvertgray02b.tga
+	// bumpmap textures/gothic_trim/skullsvertgray02b_local.tga
+	// specularmap textures/gothic_trim/skullsvertgray02b_s.tga
+}
+
+textures/gothic_door/skull_door_b
+{
+	qer_editorimage textures/gothic_door/skull_door_b.tga
+	diffusemap textures/gothic_door/skull_door_b.tga
+	// bumpmap textures/gothic_door/skull_door_b_local.tga
+	// specularmap textures/gothic_door/skull_door_b_s.tga
+}
+
+textures/gothic_door/skull_door_f
+{
+	qer_editorimage textures/gothic_door/skull_door_f.tga
+	diffusemap textures/gothic_door/skull_door_f.tga
+	// bumpmap textures/gothic_door/skull_door_f_local.tga
+	// specularmap textures/gothic_door/skull_door_f_s.tga
+}
+
+textures/gothic_door/skull_door_d
+{
+	qer_editorimage textures/gothic_door/skull_door_d.tga
+	diffusemap textures/gothic_door/skull_door_d.tga
+	// bumpmap textures/gothic_door/skull_door_d_local.tga
+	// specularmap textures/gothic_door/skull_door_d_s.tga
+}
+
+textures/gothic_door/skull_door_e
+{
+	qer_editorimage textures/gothic_door/skull_door_e.tga
+	diffusemap textures/gothic_door/skull_door_e.tga
+	// bumpmap textures/gothic_door/skull_door_e_local.tga
+	// specularmap textures/gothic_door/skull_door_e_s.tga
+}
+
+textures/gothic_door/skull_door_c
+{
+	qer_editorimage textures/gothic_door/skull_door_c.tga
+	diffusemap textures/gothic_door/skull_door_c.tga
+	// bumpmap textures/gothic_door/skull_door_c_local.tga
+	// specularmap textures/gothic_door/skull_door_c_s.tga
+}
+
+textures/gothic_door/skull_door_a
+{
+	qer_editorimage textures/gothic_door/skull_door_a.tga
+	diffusemap textures/gothic_door/skull_door_a.tga
+	// bumpmap textures/gothic_door/skull_door_a_local.tga
+	// specularmap textures/gothic_door/skull_door_a_s.tga
+}
+
+textures/gothic_floor/largerblock3b
+{
+	qer_editorimage textures/gothic_floor/largerblock3b.tga
+	diffusemap textures/gothic_floor/largerblock3b.tga
+	// bumpmap textures/gothic_floor/largerblock3b_local.tga
+	// specularmap textures/gothic_floor/largerblock3b_s.tga
+}
+
+textures/gothic_trim/metaldemonkillblock
+{
+	qer_editorimage textures/gothic_trim/metaldemonkillblock.tga
+	diffusemap textures/gothic_trim/metaldemonkillblock.tga
+	// bumpmap textures/gothic_trim/metaldemonkillblock_local.tga
+	// specularmap textures/gothic_trim/metaldemonkillblock_s.tga
+}
+
+textures/sfx/flame1
+{
+	qer_editorimage textures/sfx/flame1.tga
+	diffusemap textures/sfx/flame1.tga
+	// bumpmap textures/sfx/flame1_local.tga
+	// specularmap textures/sfx/flame1_s.tga
+}
+
+textures/gothic_floor/metalbridge06
+{
+	qer_editorimage textures/gothic_floor/metalbridge06.tga
+	diffusemap textures/gothic_floor/metalbridge06.tga
+	// bumpmap textures/gothic_floor/metalbridge06_local.tga
+	// specularmap textures/gothic_floor/metalbridge06_s.tga
+}
+
+textures/gothic_floor/metalbridge06broke
+{
+	qer_editorimage textures/gothic_floor/metalbridge06broke.tga
+	diffusemap textures/gothic_floor/metalbridge06broke.tga
+	// bumpmap textures/gothic_floor/metalbridge06broke_local.tga
+	// specularmap textures/gothic_floor/metalbridge06broke_s.tga
+}
+
+textures/gothic_trim/metalsupport4b
+{
+	qer_editorimage textures/gothic_trim/metalsupport4b.tga
+	diffusemap textures/gothic_trim/metalsupport4b.tga
+	// bumpmap textures/gothic_trim/metalsupport4b_local.tga
+	// specularmap textures/gothic_trim/metalsupport4b_s.tga
+}
+
+textures/gothic_door/xian_tourneyarch_inside2
+{
+	qer_editorimage textures/gothic_door/xian_tourneyarch_inside2.tga
+	diffusemap textures/gothic_door/xian_tourneyarch_inside2.tga
+	// bumpmap textures/gothic_door/xian_tourneyarch_inside2_local.tga
+	// specularmap textures/gothic_door/xian_tourneyarch_inside2_s.tga
+}
+
+textures/gothic_door/skullarch_c
+{
+	qer_editorimage textures/gothic_door/skullarch_c.tga
+	diffusemap textures/gothic_door/skullarch_c.tga
+	// bumpmap textures/gothic_door/skullarch_c_local.tga
+	// specularmap textures/gothic_door/skullarch_c_s.tga
+}
+
+textures/gothic_door/skullarch_a
+{
+	qer_editorimage textures/gothic_door/skullarch_a.tga
+	diffusemap textures/gothic_door/skullarch_a.tga
+	// bumpmap textures/gothic_door/skullarch_a_local.tga
+	// specularmap textures/gothic_door/skullarch_a_s.tga
+}
+
+textures/gothic_wall/supportborder_blue_c
+{
+	qer_editorimage textures/gothic_wall/supportborder_blue_c.tga
+	diffusemap textures/gothic_wall/supportborder_blue_c.tga
+	// bumpmap textures/gothic_wall/supportborder_blue_c_local.tga
+	// specularmap textures/gothic_wall/supportborder_blue_c_s.tga
+}
+
+textures/gothic_wall/supportborder_blue_b
+{
+	qer_editorimage textures/gothic_wall/supportborder_blue_b.tga
+	diffusemap textures/gothic_wall/supportborder_blue_b.tga
+	// bumpmap textures/gothic_wall/supportborder_blue_b_local.tga
+	// specularmap textures/gothic_wall/supportborder_blue_b_s.tga
+}
+
+textures/gothic_trim/metalsupsolid
+{
+	qer_editorimage textures/gothic_trim/metalsupsolid.tga
+	diffusemap textures/gothic_trim/metalsupsolid.tga
+	// bumpmap textures/gothic_trim/metalsupsolid_local.tga
+	// specularmap textures/gothic_trim/metalsupsolid_s.tga
+}
+
+textures/gothic_floor/xstepborder3
+{
+	qer_editorimage textures/gothic_floor/xstepborder3.tga
+	diffusemap textures/gothic_floor/xstepborder3.tga
+	// bumpmap textures/gothic_floor/xstepborder3_local.tga
+	// specularmap textures/gothic_floor/xstepborder3_s.tga
+}
+
+textures/gothic_block/blocks18b
+{
+	qer_editorimage textures/gothic_block/blocks18b.tga
+	diffusemap textures/gothic_block/blocks18b.tga
+	// bumpmap textures/gothic_block/blocks18b_local.tga
+	// specularmap textures/gothic_block/blocks18b_s.tga
+}
+
+textures/gothic_floor/xstairtop4
+{
+	qer_editorimage textures/gothic_floor/xstairtop4.tga
+	diffusemap textures/gothic_floor/xstairtop4.tga
+	// bumpmap textures/gothic_floor/xstairtop4_local.tga
+	// specularmap textures/gothic_floor/xstairtop4_s.tga
+}
+
+textures/gothic_wall/iron01_e
+{
+	qer_editorimage textures/gothic_wall/iron01_e.tga
+	diffusemap textures/gothic_wall/iron01_e.tga
+	// bumpmap textures/gothic_wall/iron01_e_local.tga
+	// specularmap textures/gothic_wall/iron01_e_s.tga
+}
+
+textures/gothic_wall/iron01_ntech3
+{
+	qer_editorimage textures/gothic_wall/iron01_ntech3.tga
+	diffusemap textures/gothic_wall/iron01_ntech3.tga
+	// bumpmap textures/gothic_wall/iron01_ntech3_local.tga
+	// specularmap textures/gothic_wall/iron01_ntech3_s.tga
+}
+
+textures/gothic_block/blocks18c_3
+{
+	qer_editorimage textures/gothic_block/blocks18c_3.tga
+	diffusemap textures/gothic_block/blocks18c_3.tga
+	// bumpmap textures/gothic_block/blocks18c_3_local.tga
+	// specularmap textures/gothic_block/blocks18c_3_s.tga
+}
+
+textures/organics/dirt2
+{
+	qer_editorimage textures/organics/dirt2.tga
+	diffusemap textures/organics/dirt2.tga
+	// bumpmap textures/organics/dirt2_local.tga
+	// specularmap textures/organics/dirt2_s.tga
+}
+
+textures/liquids/lavahell
+{
+	qer_editorimage textures/liquids/lavahell.tga
+	diffusemap textures/liquids/lavahell.tga
+	// bumpmap textures/liquids/lavahell_local.tga
+	// specularmap textures/liquids/lavahell_s.tga
+}
+
+textures/skin/skin6
+{
+	qer_editorimage textures/skin/skin6.tga
+	diffusemap textures/skin/skin6.tga
+	// bumpmap textures/skin/skin6_local.tga
+	specularmap textures/skin/skin6.tga
+}
+
+textures/gothic_trim/km_arena1tower4
+{
+	qer_editorimage textures/gothic_trim/km_arena1tower4.tga
+	diffusemap textures/gothic_trim/km_arena1tower4.tga
+	// bumpmap textures/gothic_trim/km_arena1tower4_local.tga
+	// specularmap textures/gothic_trim/km_arena1tower4_s.tga
+}
+
+textures/gothic_trim/km_arena1tower4_a
+{
+	qer_editorimage textures/gothic_trim/km_arena1tower4_a.tga
+	diffusemap textures/gothic_trim/km_arena1tower4_a.tga
+	// bumpmap textures/gothic_trim/km_arena1tower4_a_local.tga
+	// specularmap textures/gothic_trim/km_arena1tower4_a_s.tga
+}
+
+textures/gothic_wall/skull4
+{
+	qer_editorimage textures/gothic_wall/skull4.tga
+	diffusemap textures/gothic_wall/skull4.tga
+	// bumpmap textures/gothic_wall/skull4_local.tga
+	// specularmap textures/gothic_wall/skull4_s.tga
+}
+
+textures/gothic_trim/baseboard09_e2
+{
+	qer_editorimage textures/gothic_trim/baseboard09_e2.tga
+	diffusemap textures/gothic_trim/baseboard09_e2.tga
+	// bumpmap textures/gothic_trim/baseboard09_e2_local.tga
+	// specularmap textures/gothic_trim/baseboard09_e2_s.tga
+}
+
+textures/gothic_block/killblock_i4
+{
+	qer_editorimage textures/gothic_block/killblock_i4.tga
+	diffusemap textures/gothic_block/killblock_i4.tga
+	// bumpmap textures/gothic_block/killblock_i4_local.tga
+	// specularmap textures/gothic_block/killblock_i4_s.tga
+}
+
+textures/gothic_trim/baseboard04
+{
+	qer_editorimage textures/gothic_trim/baseboard04.tga
+	diffusemap textures/gothic_trim/baseboard04.tga
+	// bumpmap textures/gothic_trim/baseboard04_local.tga
+	// specularmap textures/gothic_trim/baseboard04_s.tga
+}
+
+textures/gothic_trim/pitted_rust
+{
+	qer_editorimage textures/gothic_trim/pitted_rust.tga
+	diffusemap textures/gothic_trim/pitted_rust.tga
+	// bumpmap textures/gothic_trim/pitted_rust_local.tga
+	// specularmap textures/gothic_trim/pitted_rust_s.tga
+}
+
+textures/gothic_light/pentagram_light1
+{
+	qer_editorimage textures/gothic_light/pentagram_light1.tga
+	diffusemap textures/gothic_light/pentagram_light1.tga
+	// bumpmap textures/gothic_light/pentagram_light1_local.tga
+	// specularmap textures/gothic_light/pentagram_light1_s.tga
+}
+
+textures/gothic_trim/baseboard09_l2
+{
+	qer_editorimage textures/gothic_trim/baseboard09_l2.tga
+	diffusemap textures/gothic_trim/baseboard09_l2.tga
+	// bumpmap textures/gothic_trim/baseboard09_l2_local.tga
+	// specularmap textures/gothic_trim/baseboard09_l2_s.tga
+}
+
+textures/gothic_ceiling/woodceiling1a
+{
+	qer_editorimage textures/gothic_ceiling/woodceiling1a.tga
+	diffusemap textures/gothic_ceiling/woodceiling1a.tga
+	// bumpmap textures/gothic_ceiling/woodceiling1a_local.tga
+	// specularmap textures/gothic_ceiling/woodceiling1a_s.tga
+}
+
+textures/skin/chapthroat
+{
+	qer_editorimage textures/skin/chapthroat.tga
+	diffusemap textures/skin/chapthroat.tga
+	// bumpmap textures/skin/chapthroat_local.tga
+	// specularmap textures/skin/chapthroat_s.tga
+}
+
+textures/gothic_block/blocks11b
+{
+	qer_editorimage textures/gothic_block/blocks11b.tga
+	diffusemap textures/gothic_block/blocks11b.tga
+	// bumpmap textures/gothic_block/blocks11b_local.tga
+	specularmap textures/gothic_block/blocks11b.tga
+}
+
+textures/sfx/computer_blocks17
+{
+	qer_editorimage textures/sfx/computer_blocks17.tga
+	diffusemap textures/sfx/computer_blocks17.tga
+	// bumpmap textures/sfx/computer_blocks17_local.tga
+	// specularmap textures/sfx/computer_blocks17_s.tga
+}
+
+textures/gothic_block/blocks17
+{
+	qer_editorimage textures/gothic_block/blocks17.tga
+	diffusemap textures/gothic_block/blocks17.tga
+	// bumpmap textures/gothic_block/blocks17_local.tga
+	// specularmap textures/gothic_block/blocks17_s.tga
+}
+
+textures/gothic_floor/xstepborder3brn
+{
+	qer_editorimage textures/gothic_floor/xstepborder3brn.tga
+	diffusemap textures/gothic_floor/xstepborder3brn.tga
+	// bumpmap textures/gothic_floor/xstepborder3brn_local.tga
+	// specularmap textures/gothic_floor/xstepborder3brn_s.tga
+}
+
+textures/gothic_floor/xstairtop4bbrn
+{
+	qer_editorimage textures/gothic_floor/xstairtop4bbrn.tga
+	diffusemap textures/gothic_floor/xstairtop4bbrn.tga
+	// bumpmap textures/gothic_floor/xstairtop4bbrn_local.tga
+	// specularmap textures/gothic_floor/xstairtop4bbrn_s.tga
+}
+
+textures/gothic_block/blocks18c
+{
+	qer_editorimage textures/gothic_block/blocks18c.tga
+	diffusemap textures/gothic_block/blocks18c.tga
+	// bumpmap textures/gothic_block/blocks18c_local.tga
+	// specularmap textures/gothic_block/blocks18c_s.tga
+}
+
+textures/sfx/fireswirl2
+{
+	qer_editorimage textures/sfx/fireswirl2.tga
+	diffusemap textures/sfx/fireswirl2.tga
+	// bumpmap textures/sfx/fireswirl2_local.tga
+	// specularmap textures/sfx/fireswirl2_s.tga
+}
+
+textures/base_wall/protobanner
+{
+ 	noShadows
+	nonsolid
+	noimpact
+	qer_editorimage textures/base_wall/protobanner.tga
+
+	{       
+      	 blend	diffusemap
+	 map	textures/base_wall/protobanner.tga
+	 alphaTest 0.5
+	}
+	
+}
+
+textures/liquids/proto_grueldark2
+{
+	qer_editorimage textures/liquids/proto_grueldark2.tga
+	diffusemap textures/liquids/proto_grueldark2.tga
+	// bumpmap textures/liquids/proto_grueldark2_local.tga
+	// specularmap textures/liquids/proto_grueldark2_s.tga
+}
+
+textures/skin/tongue
+{
+	qer_editorimage textures/skin/tongue.tga
+	diffusemap textures/skin/tongue.tga
+	// bumpmap textures/skin/tongue_local.tga
+	specularmap textures/skin/tongue.tga
+}
+
+textures/gothic_door/km_arena1columna2R
+{
+	qer_editorimage textures/gothic_door/km_arena1columna2R.tga
+	diffusemap textures/gothic_door/km_arena1columna2R.tga
+	bumpmap textures/gothic_door/km_arena1columna2R_b.tga
+	specularmap textures/gothic_door/km_arena1columna2R.tga
+}
+
+textures/skin/surface8
+{
+	qer_editorimage textures/skin/surface8.tga
+	diffusemap textures/skin/surface8.tga
+	// bumpmap textures/skin/surface8_local.tga
+	specularmap textures/skin/surface8.tga
+}
+
+textures/liquids/proto_gruel3
+{
+	qer_editorimage textures/liquids/proto_gruel3.tga
+	diffusemap textures/liquids/proto_gruel3.tga
+	// bumpmap textures/liquids/proto_gruel3_local.tga
+	// specularmap textures/liquids/proto_gruel3_s.tga
+}
+
+textures/skin/chapthroat2
+{
+	qer_editorimage textures/skin/chapthroat2.tga
+	diffusemap textures/skin/chapthroat2.tga
+	// bumpmap textures/skin/chapthroat2_local.tga
+	specularmap textures/skin/chapthroat2.tga
+}
+
+textures/gothic_trim/km_arena1tower_short
+{
+	qer_editorimage textures/gothic_trim/km_arena1tower_short.tga
+	diffusemap textures/gothic_trim/km_arena1tower_short.tga
+	// bumpmap textures/gothic_trim/km_arena1tower_short_local.tga
+	// specularmap textures/gothic_trim/km_arena1tower_short_s.tga
+}

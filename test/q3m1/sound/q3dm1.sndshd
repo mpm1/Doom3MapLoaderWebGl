@@ -1,0 +1,20 @@
+quakefire{
+sound/all/q3dm1/quakefire.wav
+volume 9
+}
+x_ominous{
+global
+sound/all/q3dm1/x_ominous.wav
+volume 6
+}
+sonic5{
+global
+volume -7
+sound/all/q3dm1/sonic5.ogg
+}
+monsterbreaths {	
+sound/all/q3dm1/monsterbreaths.ogg
+minDistance 8
+maxDistance 25
+volume 2
+}

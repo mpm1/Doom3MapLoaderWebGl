@@ -1,0 +1,12 @@
+
+mapDef q3dm1 {
+	"name"		"Arena Gate"
+	"Deathmatch"		"1"
+	"Team DM"		"1"
+	"Last Man"		"1"
+	"Tourney"		"1"
+	"size0"		"88920182"
+	"size1"		"88920182"
+	"size2"		"135748449"
+	"size3"		"184703818"
+}
