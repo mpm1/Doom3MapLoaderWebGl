@@ -1,4 +1,53 @@
 function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath){
+    this.pak = null;
     this.display = new Display($(canvasPath)[0]);
     this.console = new Console($(consoleInputPath)[0], $(consoleOutputPath)[0], $(consoleButtonPath)[0]);
+
+    this.console.addFunction("loadpak", new ConsoleFunction("loadpak", "Loads a pk4 file from a url into memory.", this.loadPk4));
+    this.console.addFunction("loadmap", new ConsoleFunction("loadmap", "Loads a map from the currently loaded pk4 file.", this.loadMap));
+
+    var _this = this;
+    this.loadPk4("./test/q3dm1.pk4").then(function(pak){ _this.loadMap("q3dm1"); });
+}
+{
+    Game.prototype.loadPk4 = function(url){
+        this.console.writeLine("Loading pak file: " + url);
+        var game = this;
+
+        return new Promise(function(resolve, reject){
+            var pak = new JSZip();
+            var console = game.console;
+            var loadMap = game.loadMap;
+    
+            var oReq = new XMLHttpRequest();
+            oReq.open("GET", url, true);
+            oReq.responseType = "arraybuffer";
+    
+            oReq.onload = function(oEvent){
+                var arrayBuffer = oReq.response;
+    
+                if(arrayBuffer){
+                    pak.loadAsync(arrayBuffer, {}).then(function(result){
+                        console.writeLine("Pak file loaded.");
+    
+                        resolve(pak);
+                    }, function(){ reject(pak); });
+                }else{
+                    console.writeLine("Error loading pak: " + url);
+                    reject(pak);
+                }
+            }
+            oReq.send(null);
+    
+            if(this.pak != null){
+                //TODO: Close this file.
+            }
+    
+            game.pak = pak;
+        });
+    }
+
+    Game.prototype.loadMap = function(mapName){
+        this.console.writeLine("Loading map: " + mapName);
+    }
 }

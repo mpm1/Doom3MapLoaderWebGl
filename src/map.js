@@ -43,30 +43,6 @@ Brush.prototype.draw = function(display){
     display.draw(this.vertecies, this.polygons, this.material)
 }
 
-var Box = function(material){
-    // TODO: add the normals
-    this.init([
-        -0.5, 0.5, -0.5,
-        0.5, 0.5, -0.5,
-        0.5, -0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, 0.5, 0.5,
-        0.5, 0.5, 0.5,
-        0.5, -0.5, 0.5,
-        -0.5, -0.5, 0.5
-    ],[
-        0, 1, 3,
-        1, 2, 3,
-        7, 5, 2,
-        5, 6, 2,
-        5, 4, 6,
-        4, 7, 6,
-        4, 0, 7,
-        0, 3, 7,
-        4, 6, 0,
-        6, 7, 0,
-        3, 2, 7,
-        2, 6, 7
-    ], material);
+function Map(mapName){
+    this.isLoaded = false;
 }
-Box.prototype = Object.create(Brush.prototype);
