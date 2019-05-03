@@ -26,11 +26,12 @@
             <div id="gameConsole">
                 <div class="output"></div>
                 <input type="text" class="input"></input>
+                <button class="inputClick">Execute</button>
             </div>
         </div>
 
         <script type="text/javascript">
-            var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input");
+            var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
 
             game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
         </script>
