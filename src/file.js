@@ -1,3 +1,8 @@
+/**
+ * Data for a element file.
+ * 
+ * @param {string} file 
+ */
 var FileLexer = function(file){
 }
 {

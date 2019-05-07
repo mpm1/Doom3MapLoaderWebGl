@@ -43,6 +43,55 @@ Brush.prototype.draw = function(display){
     display.draw(this.vertecies, this.polygons, this.material)
 }
 
-function Map(mapName){
-    this.isLoaded = false;
+function Map(mapName, pakFile){
+    this.init(mapName, pakFile);
+}
+{
+    function parseMaterial(){
+
+    }
+
+    /**
+     * Loads the map into memory.
+     * 
+     * @param {FileLexer} materialFile 
+     */
+    function loadMaterials(materialFile){
+        Console.current.writeLine(materialFile);
+    }
+
+    Map.prototype.init = function(mapName, pakFile){
+        this.isLoaded = false;
+        this.name = mapName;
+        this.pakFile = pakFile;
+        this.materials = {};
+    }
+
+    /**
+     * Loads the map into memory.
+     * 
+     * @returns {Promise} Stating if the map was resolved or rejected.
+     */
+    Map.prototype.load = function(){
+        if(this.isLoaded){
+            return;
+        }
+
+        var map = this;
+        var pak = this.pakFile;
+
+        return new Promise(function(resolve, reject){
+            pak.file("materials/" + map.name + ".mtr").async("string").then(function(text){
+                loadMaterials.call(map, text);
+                resolve(map);
+            }, reject);
+        });
+    }
+
+    /**
+     * Unloads the map from memory.
+     */
+    Map.prototype.unload = function(){
+
+    }
 }

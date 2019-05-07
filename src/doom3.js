@@ -1,5 +1,6 @@
 function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath){
     this.pak = null;
+    this.map = null;
     this.display = new Display($(canvasPath)[0]);
     this.console = new Console($(consoleInputPath)[0], $(consoleOutputPath)[0], $(consoleButtonPath)[0]);
 
@@ -48,6 +49,20 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
     }
 
     Game.prototype.loadMap = function(mapName){
-        this.console.writeLine("Loading map: " + mapName);
+        var console = this.console;
+        console.writeLine("Loading map: " + mapName);
+
+        if(this.map != null){
+            this.map.unload();
+            this.map = null;
+        }
+
+        this.map = new Map(mapName, this.pak);
+        this.map.load().then(function(map){
+            console.writeLine("Map " + mapName + " loaded successfully.");
+        }, function(message){
+            console.writeLine("An error occured while loading the map.");
+            console.writeLine("Error: " + message);
+        });
     }
 }
