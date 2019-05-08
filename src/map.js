@@ -5,7 +5,51 @@ var Transform = function(position, rotation, scale){
 }
 
 var Material = function(){
+    this.init();
+}
+{
+    function parseElement(file, tokenBuffer){
+        var token;
 
+        while((token = file.next()) != null){
+            if(token == "{"){
+                var child = new Material();
+
+                if(parseElement.call(child, file, tokenBuffer)){
+                    this.stages.push(child);
+                }
+            }else if(token == "}"){
+                return true;
+            }
+            else{
+                // TODO
+            }
+        }
+
+        return false;
+    }
+
+    Material.prototype.init = function(){
+        this.stages = [];
+        this.name = null;
+    }
+
+    Material.prototype.parse = function(file){
+        var token;
+
+        // This will only obtain the first material element it finds.
+        do{
+            token = file.current();
+
+            if(token == "{"){
+                return parseElement.call(this, file);
+            }else{
+                this.name = token;
+            }
+        }while(file.next() != null);
+
+        return false;
+    }
 }
 
 var Actor = function(position, rotation, scale){
@@ -47,9 +91,6 @@ function Map(mapName, pakFile){
     this.init(mapName, pakFile);
 }
 {
-    function parseMaterial(){
-
-    }
 
     /**
      * Loads the map into memory.
@@ -57,7 +98,26 @@ function Map(mapName, pakFile){
      * @param {FileLexer} materialFile 
      */
     function loadMaterials(materialFile){
-        Console.current.writeLine(materialFile);
+        this.line = 0;
+        var materialIndex = 0;
+        var materialCount = 0;
+
+        Console.current.writeLine("Loading materials...");
+
+        while(materialFile.next() != null){
+            var material = new Material();
+
+            if(material.parse(materialFile)){
+                this.materials[material.name] = material;
+                ++materialCount;
+            }else{
+                Console.current.writeLine("Failed to load material " + material.name + " index " + materialIndex);
+            }
+
+            ++materialIndex;
+        }
+
+        Console.current.writeLine(materialCount + " materials loaded.");
     }
 
     Map.prototype.init = function(mapName, pakFile){
@@ -82,7 +142,7 @@ function Map(mapName, pakFile){
 
         return new Promise(function(resolve, reject){
             pak.file("materials/" + map.name + ".mtr").async("string").then(function(text){
-                loadMaterials.call(map, text);
+                loadMaterials.call(map, new FileLexer(text));
                 resolve(map);
             }, reject);
         });
