@@ -25,6 +25,10 @@ var FileLexer = function(file){
     }
 
     function tokenizePiece(piece, outputBuffer){
+        if(piece.length == 0){
+            return;
+        }
+        
         var index;
         var checkType;
 
