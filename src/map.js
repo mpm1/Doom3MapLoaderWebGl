@@ -1,3 +1,4 @@
+
 // TODO: Convert to GL blend modes
 const BLEND_MODES = {
     "gl_zero" : 0,
@@ -12,6 +13,15 @@ var Transform = function(position, rotation, scale){
     this.position = position;
     this.rotation = rotation;
     this.scale = scale;
+}
+
+var Camera = function(){
+    this.init();
+}
+{
+    function init(){
+        this.transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
+    }
 }
 
 var Material = function(){
@@ -208,22 +218,108 @@ Actor.prototype.draw = function(display){
     display.popTransform();
 }
 
-var Room = function(){
+var Area = function(){
     this.init(Vector3.zero, Quaternion.zero, Vector3.one);
 }
-Room.prototype = Object.create(Actor.prototype);
+{
+    Area.prototype = Object.create(Actor.prototype);
 
-var Brush = function(vertecies, material){
-    this.init(vertecies, material);
+    Area.prototype.init = function() {
+        Actor.prototype.init.apply(this, arguments);
+
+        this.name = "";
+        this.brushes = [];
+    }
+
+    Area.prototype.parse = function(file, map){
+        this.name = file.next().replace("\"", "");
+        
+        var brushCount = parseInt(file.next());
+        
+        for(var i = 0; i < brushCount; ++i){
+            file.next();
+
+            var brush = new Brush();
+            brush.parse(file, map);
+            this.brushes.push(brush);
+        }
+
+        file.readUntil("}");
+    }
 }
-Brush.prototype.init = function(vertecies, polygons, material){
-    this.vertecies = new Float32Array(vertecies);
-    this.polygons = new Uint16Array(polygons);
-    this.bounds = Float32Array(6); //TODO: plan the bounds for light clustering.
-    this.material = material;
+
+var ReadableVertex = function(){
+    this.x = 0.0;
+    this.y = 0.0;
+    this.z = 0.0;
+    this.u = 0.0;
+    this.v = 0.0;
+    this.nx = 0.0;
+    this.ny = 1.0;
+    this.nz = 0.0;
+    this.r = 0;
+    this.g = 0;
+    this.b = 0;
 }
-Brush.prototype.draw = function(display){
-    display.draw(this.vertecies, this.polygons, this.material)
+ReadableVertex.readOrder = ["x", "y", "z", "u", "v", "nx", "ny", "nz", "r", "g", "b"];
+ReadableVertex.prototype.parse = function(file){
+    var token;
+    file.readUntil("(");
+
+    for(var i = 0; i < ReadableVertex.readOrder.length; ++i){
+        token = file.next();
+
+        if(token == ")"){
+            return;
+        }
+
+        this[ReadableVertex.readOrder[i]] = parseFloat(token);
+    }
+
+    file.readUntil(")");
+}
+
+var Brush = function(){
+    this.init();
+}
+{
+    Brush.prototype.init = function(){
+        this.vertecies = null;
+        this.indecies = null;
+        this.bounds = new Float32Array(6); //TODO: plan the bounds for light clustering.
+        this.material = null;
+    }
+    Brush.prototype.draw = function(display){
+        display.draw(this.vertecies, this.polygons, this.material)
+    }
+    Brush.prototype.parse = function(file, map){
+        var materialName = file.next().replace(/"/g, "");
+        var vertCount = parseInt(file.next());
+        var indexCount = parseInt(file.next());
+        var token;
+
+        this.vertecies = new Float32Array(vertCount * ReadableVertex.readOrder.length);
+        this.indecies = new Uint16Array(indexCount);
+        this.material = map.materials[materialName];
+
+        // Read Verticies
+        for(var i = 0; i < vertCount; ++i){
+            var vIndex = i * ReadableVertex.readOrder.length;
+            var vertex = new ReadableVertex();
+            vertex.parse(file);
+
+            for(var v = 0; v < ReadableVertex.readOrder.length; ++v){
+                this.vertecies[vIndex + v] = vertex[ReadableVertex.readOrder[v]];
+            }
+        }
+
+        // Read indecies
+        for(var i = 0; i < indexCount; ++i){
+            this.indecies[i] = parseInt(file.next());
+        }
+
+        file.readUntil("}");
+    }
 }
 
 function Map(mapName, pakFile){
@@ -259,11 +355,37 @@ function Map(mapName, pakFile){
         Console.current.writeLine(materialCount + " materials loaded.");
     }
 
+    /**
+     * Loads the .map file into memory creating the needed areas and lights.
+     * 
+     * @param {FileLexer} mapFile 
+     */
+    function loadMap(mapFile){
+    }
+
+
+    /** Loads the .proc file into memory and creates the needed brushes and shadow volumes. */
+    function loadProcFile(procFile){
+        var procType = procFile.next();
+        var token;
+
+        while((token = procFile.next()) != null){
+            if(token == "model") {
+                procFile.next(); //Obtain the opening bracket.
+                var area = new Area();
+                area.parse(procFile, this);
+
+                this.areas[area.name] = area;
+            }
+        }
+    }
+
     Map.prototype.init = function(mapName, pakFile){
         this.isLoaded = false;
         this.name = mapName;
         this.pakFile = pakFile;
         this.materials = {};
+        this.areas = {};
     }
 
     /**
@@ -282,7 +404,16 @@ function Map(mapName, pakFile){
         return new Promise(function(resolve, reject){
             pak.file("materials/" + map.name + ".mtr").async("string").then(function(text){
                 loadMaterials.call(map, new FileLexer(text));
-                resolve(map);
+                
+                pak.file("maps/" + map.name + ".map").async("string").then(function(text){
+                    loadMap.call(map, new FileLexer(text));
+                    
+                    pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
+                        loadProcFile.call(map, new FileLexer(text));
+
+                        resolve(map);
+                    }, reject);
+                }, reject);
             }, reject);
         });
     }

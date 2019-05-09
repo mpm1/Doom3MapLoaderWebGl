@@ -14,13 +14,15 @@ var FileLexer = function(file){
         "<<=",
         "...",
 
+        "(",
+        ")",
         "{",
          "}"
         ]
 
     function convertFileToTokens(file){
         var tokens = [];
-        var text = file.replace(/(\/\*(.|\n)*\*\/)|(\/\/.*$)/gm, "");
+        var text = file.replace(/(\/\*(.|\n)*?\*\/)|(\/\/.*$)/gm, "");
 
         var lines = text.split("\n");
 
@@ -57,7 +59,7 @@ var FileLexer = function(file){
             if(index >= 0){
                 tokenizePiece(piece.substring(0, index), outputBuffer);
                 outputBuffer.push(checkType);
-                tokenizePiece(index + piece.substringcheckType.length, outputBuffer);
+                tokenizePiece(piece.substring(index + checkType.length), outputBuffer);
 
                 return;
             }
@@ -107,6 +109,18 @@ var FileLexer = function(file){
 
     FileLexer.prototype.reset = function(){
         this.readIndex = 0;
+    }
+
+    FileLexer.prototype.readUntil = function(token){
+        var checkVal;
+
+        while((checkVal = this.next()) != null){
+            if(checkVal == token){
+                return checkVal;
+            }
+        }
+
+        return null;
     }
 }
 
