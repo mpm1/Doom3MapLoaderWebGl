@@ -24,6 +24,12 @@ var Material = function(){
         }
     }
 
+    function createSetNumberFunction(name){
+        return function(file){
+            this[name] = parseFloat(file.next());
+        }
+    }
+
     function createSetImageFunction(name){
         return function(file){
             //TODO: Create object
@@ -31,9 +37,20 @@ var Material = function(){
         }
     }
 
-    function setBlendFunction(file){
-        var firstToken = file.next();
+    function createMapFunction(blendFunc){
+        return function(file){
+            this.map = file.next();
+            setBlendFromValue.call(this, file, blendFunc);
+        }
+    }
 
+    function createSetBoolFunction(name, value){
+        return function(file){
+            this[name] = value;
+        }
+    }
+
+    function setBlendFromValue(file, firstToken){
         switch(firstToken){
             case "blend":
                 this.blend.src = BLEND_MODES["gl_zero"];
@@ -77,11 +94,37 @@ var Material = function(){
         }
     }
 
+    function setBlendFunction(file){
+        var firstToken = file.next();
+
+        setBlendFromValue.call(this, file, firstToken);
+    }
+
+    function createColorMaskFunction(mask){
+        return function(file){
+            this.mask = this.mask & mask;
+        }
+    }
+
     var tokenFunctions = {
         "qer_editorimage" : createSetStringFunction("editorImage"),
         "blend" : setBlendFunction,
         "map" : createSetImageFunction("map"),
-        "diffusemap" : createSetImageFunction("diffusemap")
+        "diffusemap" : createMapFunction("diffusemap"),
+        "specularmap" : createMapFunction("specularmap"),
+        "bumpmap" : createMapFunction("bumpmap"),
+        "maskred" : createColorMaskFunction(0x00FFFFFF),
+        "maskgreen" : createColorMaskFunction(0xFF00FFFF),
+        "maskblue" : createColorMaskFunction(0xFFFF00FF),
+        "maskalpha" : createColorMaskFunction(0xFFFFFF00),
+        "maskcolor" : createColorMaskFunction(0x000000FF),
+        "alphatest" : createSetNumberFunction("alphaTest"),
+        "translucent" : createSetBoolFunction("translucent", true),
+        "nonsolid" : createSetBoolFunction("solid", false),
+        "alphatest" : createSetBoolFunction("alphaTest", true),
+        "noshadows" : createSetBoolFunction("shadows", false),
+        "noselfshadow" : createSetBoolFunction("selfShadow", false)
+
     }
 
     function parseElement(file, tokenBuffer){
@@ -98,6 +141,7 @@ var Material = function(){
                 return true;
             }
             else{
+                token = token.toLowerCase();
                 if(tokenFunctions[token]){
                     tokenFunctions[token].call(this, file)
                 }else{
@@ -120,6 +164,13 @@ var Material = function(){
             dst: BLEND_MODES["gl_one"]
         }
         this.map = null;
+        this.colorMask = 0xFFFFFFFF;
+        this.alphaTest = 0.0;
+        this.translucent = false;
+        this.solid = true;
+        this.alphaTest = false;
+        this.shadows = true;
+        this.selfShadows = true;
     }
 
     Material.prototype.parse = function(file){

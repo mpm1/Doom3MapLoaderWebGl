@@ -1,3 +1,4 @@
+const NEW_LINE = "\n";
 /**
  * Data for a element file.
  * 
@@ -17,18 +18,29 @@ var FileLexer = function(file){
          "}"
         ]
 
-    function convertFileToTokens(file, includeComments = false){
+    function convertFileToTokens(file){
         var tokens = [];
-        var text = includeComments ? file : file.replace(/(\/\*(.|\n)*\*\/)|(\/\/.*$)/gm, "");
+        var text = file.replace(/(\/\*(.|\n)*\*\/)|(\/\/.*$)/gm, "");
 
-        return tokenize(text, tokens);
+        var lines = text.split("\n");
+
+        for(var i = 0; i < lines.length; ++i){
+            text = lines[i].trim();
+
+            if(text.length > 0){
+                tokenize(text, tokens);
+                tokens.push[NEW_LINE];
+            }
+        }
+
+        return tokens;
     }
 
     function tokenizePiece(piece, outputBuffer){
         if(piece.length == 0){
             return;
         }
-        
+
         var index;
         var checkType;
 
@@ -69,12 +81,22 @@ var FileLexer = function(file){
         this.readIndex = -1;
     }
 
-    FileLexer.prototype.next = function(){
-        ++this.readIndex;
+    FileLexer.prototype.next = function(includeNewLine = false){
+        var value;
 
-        if(this.readIndex < this.tokens.length){
-            return this.tokens[this.readIndex];
-        }
+        while(true){
+            ++this.readIndex;
+
+            if(this.readIndex >= this.tokens.length){
+                return null;
+            }
+
+            value = this.tokens[this.readIndex];
+
+            if(!includeNewLine || value != NEW_LINE){
+                return this.tokens[this.readIndex];
+            }
+        };
 
         return null;
     }
