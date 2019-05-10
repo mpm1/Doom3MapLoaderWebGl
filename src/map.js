@@ -10,17 +10,99 @@ const BLEND_MODES = {
 
 
 var Transform = function(position, rotation, scale){
-    this.position = position;
-    this.rotation = rotation;
-    this.scale = scale;
+    this.init(position, rotation, scale);
+}
+{
+    var bufferMatrix = new Matrix4();
+
+    function updateMatrix(matrix){
+        // Move to position
+        Matrix4.translationMatrix(this.position[0], this.position[1], this.position[2], bufferMatrix);
+
+        // Rotate the matrix
+        Matrix4.rotateByQuaternion(bufferMatrix, this.rotation, matrix);
+
+        return matrix;
+    }
+
+    Transform.prototype.init = function(position, rotation, scale){
+        var modelMatrix = new Matrix4();
+        var rotationMatrix = new Matrix4();
+
+        this.position = position;
+        this.rotation = rotation;
+        this.scale = scale;
+        this.translationChanged = true;
+        this.rotationChanged = true;
+
+        Object.defineProperty(this, "matrix", {
+            get: function(){
+                if(this.translationChanged || this.rotationChanged){
+                    updateMatrix.call(this, modelMatrix);
+                    this.translationChanged = false;
+                }
+
+                return modelMatrix;
+            }
+        })
+
+        Object.defineProperty(this, "rotationMatrix", {
+            get: function(){
+                if(this.rotationChanged){
+                    Quaternion.rotationMatrix(this.rotation, rotationMatrix);
+                    this.rotationChanged = false;
+                }
+
+                return rotationMatrix;
+            }
+        })
+    }
+
+    Transform.prototype.rotate = function(amount, x, y, z){
+        this.rotationMatrix = true;
+    }
+
+    Transform.prototype.translate = function(x, y, z){
+        this.translationChanged = true;
+
+        var px = this.position[0];
+        var py = this.position[1];
+        var pz = this.position[2];
+
+        this.position[0] = x;
+        this.position[1] = y;
+        this.position[2] = z;
+        this.position[3] = 1.0;
+        
+        var translation = Matrix4.multiplyVector(this.rotationMatrix, this.position, this.position);
+
+        this.position[0] += px;
+        this.position[1] += py;
+        this.position[2] += pz;
+    }
 }
 
 var Camera = function(){
     this.init();
 }
 {
-    function init(){
+    Camera.prototype.init = function(){
         this.transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
+        this.viewMatrix = new Matrix4();
+    }
+
+    Camera.prototype.setPerspective = function(fieldOfViewInRadians, aspectRatio, near, far){
+        var matrix = this.viewMatrix;
+
+        var f = 1.0 / Math.tan(fieldOfViewInRadians / 2);
+        var rangeInv = 1.0 / (near - far);
+
+        matrix[0] = f / aspectRatio;
+        matrix[5] = f;
+        matrix[10] = (near + far) * rangeInv;
+        matrix[11] = -1;
+        matrix[14] = near * far * rangeInv * 2.0;
+        matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[8] = matrix[9] = matrix[12] = matrix[13] = matrix[15] = 0.0;
     }
 }
 
@@ -386,6 +468,9 @@ function Map(mapName, pakFile){
         this.pakFile = pakFile;
         this.materials = {};
         this.areas = {};
+        this.camera = new Camera();
+
+        this.camera.setPerspective(2.2, 16.0 / 9.0, 0.1, 1000.0);
     }
 
     /**
