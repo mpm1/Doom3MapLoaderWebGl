@@ -1,8 +1,9 @@
 function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath){
+    this.console = new Console($(consoleInputPath)[0], $(consoleOutputPath)[0], $(consoleButtonPath)[0]);
+    
     this.pak = null;
     this.map = null;
     this.display = new Display($(canvasPath)[0]);
-    this.console = new Console($(consoleInputPath)[0], $(consoleOutputPath)[0], $(consoleButtonPath)[0]);
 
     this.console.addFunction("loadpak", new ConsoleFunction("loadpak", "Loads a pk4 file from a url into memory.", this.loadPk4));
     this.console.addFunction("loadmap", new ConsoleFunction("loadmap", "Loads a map from the currently loaded pk4 file.", this.loadMap));
