@@ -32,6 +32,16 @@
             var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
 
             game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
+
+            function gameloop(time){
+                window.requestAnimationFrame(gameloop);
+
+                var secondsDelta = time / 1000.0;
+
+                game.loop(secondsDelta);
+            }
+
+            gameloop(0);
         </script>
 
     </body>

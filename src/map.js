@@ -344,6 +344,11 @@ var ReadableVertex = function(){
     this.b = 0;
 }
 ReadableVertex.readOrder = ["x", "y", "z", "u", "v", "nx", "ny", "nz", "r", "g", "b"];
+ReadableVertex.stride = ReadableVertex.readOrder.length * 4;
+ReadableVertex.positionOffset = 0 * 4;
+ReadableVertex.textureOffset = 3 * 4;
+ReadableVertex.normalOffset = 5 * 4;
+ReadableVertex.colorOffset = 8 * 4;
 ReadableVertex.prototype.parse = function(file){
     var token;
     file.readUntil("(");
@@ -394,6 +399,7 @@ var Brush = function(){
                 this.vertecies[vIndex + v] = vertex[ReadableVertex.readOrder[v]];
             }
         }
+        this.vertecies.vertCount = vertCount;
 
         // Read indecies
         for(var i = 0; i < indexCount; ++i){
@@ -495,6 +501,7 @@ function Map(mapName, pakFile){
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));
+                        map.isLoaded = true;
 
                         resolve(map);
                     }, reject);

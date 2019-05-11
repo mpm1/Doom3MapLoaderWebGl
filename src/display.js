@@ -54,12 +54,22 @@ function Display(canvas){
         return gl;
     }
 
-    function createVertexBuffer(vertecies){
+    function createVertexBuffer(gl, vertecies){
+        var buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
+        gl.bufferData(gl.ARRAY_BUFFER, vertecies, gl.STATIC_DRAW);
+
+        vertecies.glBuffer = buffer;
     }
 
-    function createIndeciesBuffer(indecies){
+    function createIndexBuffer(gl, indecies){
+        var buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
 
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indecies, gl.STATIC_DRAW);
+
+        indecies.glBuffer = buffer;
     }
 
     function createShader(gl, name, type, source){
@@ -108,6 +118,11 @@ function Display(canvas){
         gl.deleteProgram(program);
     }
 
+    function setShaderUniforms(gl, program, camera){
+        uniformMatrix4fv(program.modelMatrixUniform, false, camera.transpose.matrix);
+        uniformMatrix4fv(program.viewMatrixUniform, false, camera.viewMatrix);
+    }
+
     Display.prototype.init = function(canvas){
         var gl = initializeGL.call(this, canvas);
 
@@ -117,22 +132,40 @@ function Display(canvas){
 
         // Temp code to create the basic shader
 
-
         this.resize(canvas.width, canvas.height);
     }
+
     Display.prototype.draw = function(lightCluster, camera){
         var gl = this.gl;
+        var program = this.shaders.test;
 
-        gl.useProgram(shaders.test);
+        gl.useProgram(program);
+        gl.enableVertexAttribArray(program.positionAttribute);
+        gl.enableVertexAttribArray(program.normalAttribute);
+        gl.enableVertexAttribArray(program.textureCoordAttribute);
+
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        lightContainers.foreach(function(container, index){
+        lightCluster.forEach(function(container, cIndex){
             //TODO: For now we are rendering every area. We will eventually group this into light clusters
-            container.brushes.foreach(function(brush, index){
+            container.brushes.forEach(function(brush, bIndex){
+                var vert = brush.vertecies;
+                var index = brush.indecies;
+
                 //For now we will dynamically create the buffers
-                if(!brush.vertecies.buffer){
-                    
+                if(!vert.glBuffer){
+                    createVertexBuffer(gl, vert);
+                    createIndexBuffer(gl, index);
                 }
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
+                gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.positionOffset);
+                gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.textureOffset);
+                gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.normalOffset);
+
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.glBuffer);
+                gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
+
             });
         })
     }
@@ -140,8 +173,7 @@ function Display(canvas){
         this.size[0] = width;
         this.size[1] = height;
 
-        this.gl.viewportWidth = width;
-        this.gl.viewportHeight = height;
+        this.gl.viewport(0, 0, width, height);
     }
     
 }
