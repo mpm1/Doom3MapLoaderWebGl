@@ -119,8 +119,8 @@ function Display(canvas){
     }
 
     function setShaderUniforms(gl, program, camera){
-        uniformMatrix4fv(program.modelMatrixUniform, false, camera.transpose.matrix);
-        uniformMatrix4fv(program.viewMatrixUniform, false, camera.viewMatrix);
+        gl.uniformMatrix4fv(program.modelMatrixUniform, true, camera.transform.matrix);
+        gl.uniformMatrix4fv(program.viewMatrixUniform, true, camera.viewMatrix);
     }
 
     Display.prototype.init = function(canvas){
@@ -145,6 +145,8 @@ function Display(canvas){
         gl.enableVertexAttribArray(program.textureCoordAttribute);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        setShaderUniforms(gl, program, camera);
 
         lightCluster.forEach(function(container, cIndex){
             //TODO: For now we are rendering every area. We will eventually group this into light clusters
