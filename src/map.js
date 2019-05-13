@@ -370,6 +370,19 @@ var Brush = function(){
     this.init();
 }
 {
+
+    function minVector(v1, v2, vOut){
+        vOut[0] = Math.min(v1[0], v2[0]);
+        vOut[1] = Math.min(v1[1], v2[1]);
+        vOut[2] = Math.min(v1[2], v2[2]);
+    }
+
+    function maxVector(v1, v2, vOut){
+        vOut[0] = Math.max(v1[0], v2[0]);
+        vOut[1] = Math.max(v1[1], v2[1]);
+        vOut[2] = Math.max(v1[2], v2[2]);
+    }
+
     Brush.prototype.init = function(){
         this.vertecies = null;
         this.indecies = null;
@@ -383,6 +396,8 @@ var Brush = function(){
         var materialName = file.next().replace(/"/g, "");
         var vertCount = parseInt(file.next());
         var indexCount = parseInt(file.next());
+        var minBounds = new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+        var maxBounds = new Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
         var token;
 
         this.vertecies = new Float32Array(vertCount * ReadableVertex.readOrder.length);
@@ -395,11 +410,20 @@ var Brush = function(){
             var vertex = new ReadableVertex();
             vertex.parse(file);
 
+            minVector(vertex, minBounds, minBounds);
+            maxVector(vertex, maxBounds, maxBounds);
+
             for(var v = 0; v < ReadableVertex.readOrder.length; ++v){
                 this.vertecies[vIndex + v] = vertex[ReadableVertex.readOrder[v]];
             }
         }
         this.vertecies.vertCount = vertCount;
+        bounds[0] = minVector[0];
+        bounds[1] = minVector[1];
+        bounds[2] = minVector[2];
+        bounds[3] = maxVector[0];
+        bounds[4] = maxVector[1];
+        bounds[5] = maxVector[2];
 
         // Read indecies
         for(var i = 0; i < indexCount; ++i){
