@@ -13,7 +13,7 @@ var Transform = function(position, rotation, scale){
     this.init(position, rotation, scale);
 }
 {
-    var bufferMatrix = new Matrix4();
+    const bufferMatrix = new Matrix4();
 
     function updateMatrix(matrix){
         // Move to position
@@ -91,18 +91,29 @@ var Camera = function(){
         this.viewMatrix = new Matrix4();
     }
 
-    Camera.prototype.setPerspective = function(fieldOfViewInRadians, aspectRatio, near, far){
-        var matrix = this.viewMatrix;
+    // Copied from the gluPerspective functions
+    function glhFrustumf2(matrix, left, right, bottom, top, znear, zfar){
+        var temp = 2.0 * znear;
+        var temp2 = right - left;
+        var temp3 = top - bottom;
+        var temp4 = zfar - znear;
 
-        var f = 1.0 / Math.tan(fieldOfViewInRadians / 2);
-        var rangeInv = 1.0 / (near - far);
+        matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[12] = matrix[13] = matrix[15] = 0.0;
 
-        matrix[0] = f / aspectRatio;
-        matrix[5] = f;
-        matrix[10] = (near + far) * rangeInv;
-        matrix[11] = -1;
-        matrix[14] = near * far * rangeInv * 2.0;
-        matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[8] = matrix[9] = matrix[12] = matrix[13] = matrix[15] = 0.0;
+        matrix[0] = temp / temp2;
+        matrix[5] = temp / temp3;
+        matrix[8] = (right + left) / temp2;
+        matrix[9] = (top + bottom) / temp3;
+        matrix[10] = (-zfar - znear) / temp4;
+        matrix[11] = -1.0;
+        matrix[14] = (-temp * zfar) / temp4;
+    }
+
+    Camera.prototype.setPerspective = function(fovInDegrees, aspectRatio, near, far){
+        var yMax = near * Math.tan(fovInDegrees * Math.PI / 360.0);
+        var xMax = yMax * aspectRatio;
+
+        glhFrustumf2(this.viewMatrix, -xMax, xMax, -yMax, yMax, near, far);
     }
 }
 
@@ -398,6 +409,7 @@ var Brush = function(){
         var indexCount = parseInt(file.next());
         var minBounds = new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
         var maxBounds = new Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
+        var bounds = this.bounds;
         var token;
 
         this.vertecies = new Float32Array(vertCount * ReadableVertex.readOrder.length);
@@ -500,7 +512,7 @@ function Map(mapName, pakFile){
         this.areas = {};
         this.camera = new Camera();
 
-        this.camera.setPerspective(2.2, 16.0 / 9.0, 0.1, 1000.0);
+        this.camera.setPerspective(100.0, 16.0 / 9.0, 0.1, 1000.0);
     }
 
     /**
@@ -522,6 +534,12 @@ function Map(mapName, pakFile){
                 
                 pak.file("maps/" + map.name + ".map").async("string").then(function(text){
                     loadMap.call(map, new FileLexer(text));
+
+                    // Temp code to set the starting position.
+                    var position = map.camera.transform.position;
+                    position[0] = -416;
+                    position[1] = -1288;
+                    position[2] = 0;
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));

@@ -13,6 +13,7 @@ var testVertex = `#version 300 es
     void main(){
         v_position = vec4(a_position, 1.0) * worldTransform;
         v_textureCoord = a_textureCoord;
+        v_normal = normalize(a_normal);
 
         gl_Position = v_position * projectionTransform;
     }
@@ -33,6 +34,7 @@ var testFragment = `#version 300 es
 
         outColor = vec4(1, 1, 1, 1);
         outColor.rgb *= nDotL;
+        outColor.r = 1.0;
     }
 `
 
@@ -104,7 +106,7 @@ function Display(canvas){
 
             program.positionAttribute = gl.getAttribLocation(program, "a_position");
             program.textureCoordAttribute = gl.getAttribLocation(program, "a_textureCoord");
-            program.normalAttribute = gl.getAttribLocation(program, "normal");
+            program.normalAttribute = gl.getAttribLocation(program, "a_normal");
 
             program.modelMatrixUniform = gl.getUniformLocation(program, "worldTransform");
             program.viewMatrixUniform = gl.getUniformLocation(program, "projectionTransform");
@@ -119,8 +121,8 @@ function Display(canvas){
     }
 
     function setShaderUniforms(gl, program, camera){
-        gl.uniformMatrix4fv(program.modelMatrixUniform, true, camera.transform.matrix);
-        gl.uniformMatrix4fv(program.viewMatrixUniform, true, camera.viewMatrix);
+        gl.uniformMatrix4fv(program.modelMatrixUniform, false, camera.transform.matrix);
+        gl.uniformMatrix4fv(program.viewMatrixUniform, false, camera.viewMatrix);
     }
 
     Display.prototype.init = function(canvas){
