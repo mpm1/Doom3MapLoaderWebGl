@@ -51,7 +51,9 @@ function Display(canvas){
         }
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clearDepth(1);
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.BACK);
 
         return gl;
     }

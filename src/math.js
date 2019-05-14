@@ -1,3 +1,7 @@
+function lerp(a, b, amount){
+    return ((1.0 - amount) * a) + (b * amount);
+}
+
 var Vector3 = function(x, y, z){
     return result = new Float32Array([x, y, z, 1.0]);
 }

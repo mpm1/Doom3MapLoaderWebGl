@@ -9,6 +9,7 @@
         <script src="./lib/jszip.min.js"></script>
 
         <!-- Engine Files -->
+        <script src="./src/controls.js"></script>
         <script src="./src/file.js"></script>
         <script src="./src/math.js"></script>
         <script src="./src/map.js"></script>
@@ -30,14 +31,36 @@
 
         <script type="text/javascript">
             var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
+            var controls = new Controls($("#gameCanvas")[0]);
 
             game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
+            
+
+            function handleControls(time) {
+                var map = game.map;
+
+                if(map && map.isLoaded){
+                    controls.update(time);
+
+                    var h = controls.controls.Horizontal.value;
+                    var v = controls.controls.Vertical.value;
+                    var magnitude = Math.sqrt(h * h + v * v);
+
+                    if(magnitude > 1.0){
+                        h = h / magnitude;
+                        v = v / magnitude;
+                    }
+
+                    map.camera.transform.translate(h, v, 0.0);
+                }
+            }
 
             function gameloop(time){
                 window.requestAnimationFrame(gameloop);
 
                 var secondsDelta = time / 1000.0;
 
+                handleControls(time);
                 game.loop(secondsDelta);
             }
 
