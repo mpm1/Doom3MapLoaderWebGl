@@ -52,6 +52,16 @@ Vector3.normalized = function(inputVector, outputVector){
 
     return outputVector;
 }
+Vector3.min = function(v1, v2, vOut){
+    vOut[0] = Math.min(v1[0], v2[0]);
+    vOut[1] = Math.min(v1[1], v2[1]);
+    vOut[2] = Math.min(v1[2], v2[2]);
+}
+Vector3.max = function(v1, v2, vOut){
+    vOut[0] = Math.max(v1[0], v2[0]);
+    vOut[1] = Math.max(v1[1], v2[1]);
+    vOut[2] = Math.max(v1[2], v2[2]);
+}
 
 var Quaternion = function(x, y, z){
     return result = new Float32Array([x, y, z, 1.0]);

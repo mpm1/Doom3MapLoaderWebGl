@@ -322,12 +322,16 @@ var Area = function(){
 
         this.name = "";
         this.brushes = [];
+        this.bounds = new Float32Array(6); //TODO: plan the bounds for light clustering.
     }
 
     Area.prototype.parse = function(file, map){
+        var minBounds = new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+        var maxBounds = new Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
         this.name = file.next().replace("\"", "");
         
         var brushCount = parseInt(file.next());
+        var bounds;
         
         for(var i = 0; i < brushCount; ++i){
             file.next();
@@ -335,7 +339,19 @@ var Area = function(){
             var brush = new Brush();
             brush.parse(file, map);
             this.brushes.push(brush);
+
+            bounds = brush.bounds;
+            Vector3.min(new Vector3(bounds[0], bounds[1], bounds[2]), minBounds, minBounds);
+            Vector3.max(new Vector3(bounds[3], bounds[4], bounds[5]), maxBounds, maxBounds);
         }
+
+        bounds = this.bounds;
+        bounds[0] = minBounds[0];
+        bounds[1] = minBounds[1];
+        bounds[2] = minBounds[2];
+        bounds[3] = maxBounds[0];
+        bounds[4] = maxBounds[1];
+        bounds[5] = maxBounds[2];
 
         file.readUntil("}");
     }
@@ -354,7 +370,7 @@ var ReadableVertex = function(){
     this.g = 0;
     this.b = 0;
 }
-ReadableVertex.readOrder = ["x", "y", "z", "u", "v", "nx", "ny", "nz", "r", "g", "b"];
+ReadableVertex.readOrder = ["x", "z", "y", "u", "v", "nx", "nz", "ny", "r", "g", "b"];
 ReadableVertex.stride = ReadableVertex.readOrder.length * 4;
 ReadableVertex.positionOffset = 0 * 4;
 ReadableVertex.textureOffset = 3 * 4;
@@ -381,18 +397,6 @@ var Brush = function(){
     this.init();
 }
 {
-
-    function minVector(v1, v2, vOut){
-        vOut[0] = Math.min(v1[0], v2[0]);
-        vOut[1] = Math.min(v1[1], v2[1]);
-        vOut[2] = Math.min(v1[2], v2[2]);
-    }
-
-    function maxVector(v1, v2, vOut){
-        vOut[0] = Math.max(v1[0], v2[0]);
-        vOut[1] = Math.max(v1[1], v2[1]);
-        vOut[2] = Math.max(v1[2], v2[2]);
-    }
 
     Brush.prototype.init = function(){
         this.vertecies = null;
@@ -422,20 +426,22 @@ var Brush = function(){
             var vertex = new ReadableVertex();
             vertex.parse(file);
 
-            minVector(vertex, minBounds, minBounds);
-            maxVector(vertex, maxBounds, maxBounds);
+            var vCheck = new Vector3(vertex.x, vertex.y, vertex.z);
+            Vector3.min(vCheck, minBounds, minBounds);
+            Vector3.max(vCheck, maxBounds, maxBounds);
 
             for(var v = 0; v < ReadableVertex.readOrder.length; ++v){
                 this.vertecies[vIndex + v] = vertex[ReadableVertex.readOrder[v]];
             }
         }
+
         this.vertecies.vertCount = vertCount;
-        bounds[0] = minVector[0];
-        bounds[1] = minVector[1];
-        bounds[2] = minVector[2];
-        bounds[3] = maxVector[0];
-        bounds[4] = maxVector[1];
-        bounds[5] = maxVector[2];
+        bounds[0] = minBounds[0];
+        bounds[1] = minBounds[1];
+        bounds[2] = minBounds[2];
+        bounds[3] = maxBounds[0];
+        bounds[4] = maxBounds[1];
+        bounds[5] = maxBounds[2];
 
         // Read indecies
         for(var i = 0; i < indexCount; ++i){
@@ -537,9 +543,9 @@ function Map(mapName, pakFile){
 
                     // Temp code to set the starting position.
                     var position = map.camera.transform.position;
-                    position[0] = -416;
-                    position[1] = -1288;
-                    position[2] = 0;
+                    position[0] = -672;
+                    position[1] = -415;
+                    position[2] = -2035;
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));
