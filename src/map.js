@@ -91,29 +91,22 @@ var Camera = function(){
         this.viewMatrix = new Matrix4();
     }
 
-    // Copied from the gluPerspective functions
-    function glhFrustumf2(matrix, left, right, bottom, top, znear, zfar){
-        var temp = 2.0 * znear;
-        var temp2 = right - left;
-        var temp3 = top - bottom;
-        var temp4 = zfar - znear;
-
-        matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[12] = matrix[13] = matrix[15] = 0.0;
-
-        matrix[0] = temp / temp2;
-        matrix[5] = temp / temp3;
-        matrix[8] = (right + left) / temp2;
-        matrix[9] = (top + bottom) / temp3;
-        matrix[10] = (-zfar - znear) / temp4;
-        matrix[11] = -1.0;
-        matrix[14] = (-temp * zfar) / temp4;
-    }
-
     Camera.prototype.setPerspective = function(fovInDegrees, aspectRatio, near, far){
-        var yMax = near * Math.tan(fovInDegrees * Math.PI / 360.0);
-        var xMax = yMax * aspectRatio;
+        var rads = (fovInDegrees * Math.PI) / 180;
+        var f = Math.tan(Math.PI * 0.5 - 0.5 * rads);
+        var rangeInv = 1.0 / (near - far);
 
-        glhFrustumf2(this.viewMatrix, -xMax, xMax, -yMax, yMax, near, far);
+        var matrix = this.viewMatrix;
+
+        matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[8] = matrix[9] = matrix[12] = matrix[13] = matrix[15] = 0.0;
+
+        matrix[0] = f / aspectRatio;
+        matrix[5] = f;
+        matrix[10] = (near + far) * rangeInv;
+        matrix[11] = -1.0;
+        matrix[14] = near * far * rangeInv * 2.0;
+
+        return matrix;
     }
 }
 
@@ -587,7 +580,7 @@ function Map(mapName, pakFile){
         this.areas = {};
         this.camera = new Camera();
 
-        this.camera.setPerspective(100.0, 16.0 / 9.0, 0.1, 1000.0);
+        this.camera.setPerspective(35.0, 16.0 / 9.0, 0.1, 2000.0);
     }
 
     /**
