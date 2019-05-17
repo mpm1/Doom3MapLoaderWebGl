@@ -2,6 +2,10 @@ function lerp(a, b, amount){
     return ((1.0 - amount) * a) + (b * amount);
 }
 
+function isPositivePower2(a){
+    return (a & 0x00000001) == 0;
+}
+
 var Vector3 = function(x, y, z){
     return result = new Float32Array([x, y, z, 1.0]);
 }

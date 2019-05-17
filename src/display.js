@@ -11,11 +11,11 @@ var testVertex = `#version 300 es
     out vec3 v_normal;
 
     void main(){
-        v_position = vec4(a_position, 1.0) * worldTransform;
+        v_position = worldTransform * vec4(a_position, 1.0);
         v_textureCoord = a_textureCoord;
         v_normal = normalize(a_normal);
 
-        gl_Position = v_position * projectionTransform;
+        gl_Position = projectionTransform * v_position;
     }
 `
 
@@ -26,17 +26,54 @@ var testFragment = `#version 300 es
     in vec2 v_textureCoord;
     in vec3 v_normal;
 
+    uniform sampler2D uMap;
+
     out vec4 outColor;
 
     void main(){
         vec3 n = normalize(v_normal);
         float nDotL = dot(n, normalize(vec3(-1, -1, -1)));
 
-        outColor = vec4(1, 1, 1, 1);
-        outColor.rgb *= nDotL;
-        outColor.r = 1.0;
+        outColor = texture(uMap, v_textureCoord);
+        outColor.a = 1.0;
+        outColor.rgb *= max(0.5, nDotL);
     }
 `
+
+function BoundsTester(gl, createShaderProgramFunction){
+
+}
+{
+    var boundsVertex = `#version 300 es
+        in vec3 a_position;
+
+        uniform mat4 worldTransform;
+        uniform mat4 projectionTransform;
+
+        void main(){
+            v_position = worldTransform * vec4(a_position, 1.0);
+
+            gl_Position = projectionTransform * v_position;
+        }
+    `
+
+    var boundsFragment = `#version 300 es
+        precision mediump float;
+
+        vec4 uniform color;
+
+        in vec4 v_position;
+
+        out vec4 outColor;
+
+        void main(){
+            outColor = color;
+        }
+    `
+    BoundsTester.prototype.init = function(gl, createShaderProgramFunction){
+        this.program = createShaderFunction(gl, "boundsTest", boundsVertex, boundsFragment);
+    }
+}
 
 
 function Display(canvas){
@@ -54,6 +91,8 @@ function Display(canvas){
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
+
+        gl.enable(gl.TEXTURE0);
 
         return gl;
     }
@@ -112,6 +151,7 @@ function Display(canvas){
 
             program.modelMatrixUniform = gl.getUniformLocation(program, "worldTransform");
             program.viewMatrixUniform = gl.getUniformLocation(program, "projectionTransform");
+            program.mapUniform = gl.getUniformLocation(program, "uMap");
 
             Console.current.writeLine("Shader loaded successfully.");
 
@@ -125,6 +165,7 @@ function Display(canvas){
     function setShaderUniforms(gl, program, camera){
         gl.uniformMatrix4fv(program.modelMatrixUniform, false, camera.transform.matrix);
         gl.uniformMatrix4fv(program.viewMatrixUniform, false, camera.viewMatrix);
+        gl.uniform1i(program.mapUniform, 0);
     }
 
     Display.prototype.init = function(canvas){
@@ -157,6 +198,15 @@ function Display(canvas){
             container.brushes.forEach(function(brush, bIndex){
                 var vert = brush.vertecies;
                 var index = brush.indecies;
+                var material = brush.material;
+
+                if(material && material.map){
+                    var texture = material.map.getGlTexture(gl);
+
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, texture);
+                }
+                
 
                 //For now we will dynamically create the buffers
                 if(!vert.glBuffer){
@@ -171,7 +221,7 @@ function Display(canvas){
 
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.glBuffer);
                 gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
-
+                //gl.drawElements(gl.LINES, index.length, gl.UNSIGNED_SHORT, 0);
             });
         })
     }

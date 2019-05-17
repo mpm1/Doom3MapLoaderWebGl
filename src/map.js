@@ -134,15 +134,14 @@ var Material = function(){
     }
 
     function createSetImageFunction(name){
-        return function(file){
-            //TODO: Create object
-            this[name] = file.next();
+        return function(file, map){
+            this[name] = map.getTexture(file.next());
         }
     }
 
     function createMapFunction(blendFunc){
-        return function(file){
-            this.map = file.next();
+        return function(file, map){
+            this.map = map.getTexture(file.next());
             setBlendFromValue.call(this, file, blendFunc);
         }
     }
@@ -230,14 +229,14 @@ var Material = function(){
 
     }
 
-    function parseElement(file, tokenBuffer){
+    function parseElement(file, map){
         var token;
 
         while((token = file.next()) != null){
             if(token == "{"){
                 var child = new Material();
 
-                if(parseElement.call(child, file, tokenBuffer)){
+                if(parseElement.call(child, file, map)){
                     this.stages.push(child);
                 }
             }else if(token == "}"){
@@ -246,7 +245,7 @@ var Material = function(){
             else{
                 token = token.toLowerCase();
                 if(tokenFunctions[token]){
-                    tokenFunctions[token].call(this, file)
+                    tokenFunctions[token].call(this, file, map)
                 }else{
                     Console.current.writeLine("Function " + token + " not found.");
                 }
@@ -276,7 +275,7 @@ var Material = function(){
         this.selfShadows = true;
     }
 
-    Material.prototype.parse = function(file){
+    Material.prototype.parse = function(file, map){
         var token;
 
         // This will only obtain the first material element it finds.
@@ -284,13 +283,82 @@ var Material = function(){
             token = file.current();
 
             if(token == "{"){
-                return parseElement.call(this, file);
+                return parseElement.call(this, file, map);
             }else{
                 this.name = token;
             }
         }while(file.next() != null);
 
         return false;
+    }
+}
+
+var Texture = function(){
+    this.imageData = null;
+
+    this.glTexture = null;
+}
+{
+    function generateEmptyTexture(gl){
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const width = 1;
+        const height = 1;
+        const border = 0;
+        const srcFormat = gl.RGBA;
+        const srcType = gl.UNSIGNED_BYTE;
+        const pixel = new Uint8Array([0, 0, 255, 255]);
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                        width, height, border, srcFormat, srcType,
+                        pixel);
+
+        texture.loaded = false;
+
+        return texture;
+    }
+
+    Texture.prototype.load = function(tgaData){
+        var tga = new TGA();
+        tga.load(tgaData);
+
+        this.imageData = tga.getImageData();
+    }
+
+    Texture.prototype.getGlTexture = function(gl){
+        var texture = this.glTexture;
+
+        if(texture == null){
+            texture = generateEmptyTexture(gl);
+            this.glTexture = texture;
+        }
+
+        if(!texture.loaded && this.imageData != null){
+            var imageData = this.imageData;
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  
+                imageData.width, imageData.height, 0, gl.RGBA,
+                gl.UNSIGNED_BYTE, new Uint8Array(imageData.data.buffer));
+
+            if(isPositivePower2(imageData.width) && isPositivePower2(imageData.height)){
+                gl.generateMipmap(gl.TEXTURE_2D);
+            }else{
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            }
+
+            texture.loaded = true;
+        }
+
+        return texture;
+    }
+
+    Texture.prototype.destroyGlTexture = function(gl){
+        gl.deleteTexture(this.glTexture);
     }
 }
 
@@ -370,7 +438,7 @@ var ReadableVertex = function(){
     this.g = 0;
     this.b = 0;
 }
-ReadableVertex.readOrder = ["x", "z", "y", "u", "v", "nx", "nz", "ny", "r", "g", "b"];
+ReadableVertex.readOrder = ["x", "y", "z", "u", "v", "nx", "ny", "nz", "r", "g", "b"];
 ReadableVertex.stride = ReadableVertex.readOrder.length * 4;
 ReadableVertex.positionOffset = 0 * 4;
 ReadableVertex.textureOffset = 3 * 4;
@@ -472,7 +540,7 @@ function Map(mapName, pakFile){
         while(materialFile.next() != null){
             var material = new Material();
 
-            if(material.parse(materialFile)){
+            if(material.parse(materialFile, this)){
                 this.materials[material.name] = material;
                 ++materialCount;
             }else{
@@ -515,6 +583,7 @@ function Map(mapName, pakFile){
         this.name = mapName;
         this.pakFile = pakFile;
         this.materials = {};
+        this.textures = {};
         this.areas = {};
         this.camera = new Camera();
 
@@ -543,9 +612,9 @@ function Map(mapName, pakFile){
 
                     // Temp code to set the starting position.
                     var position = map.camera.transform.position;
-                    position[0] = -672;
-                    position[1] = -415;
-                    position[2] = -2035;
+                    position[0] = -416;
+                    position[1] = -1288;
+                    position[2] = 0;
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));
@@ -556,6 +625,26 @@ function Map(mapName, pakFile){
                 }, reject);
             }, reject);
         });
+    }
+
+    Map.prototype.getTexture = function(name){
+        if(this.textures[name]){
+            return this.textures[name];
+        }else{
+            var texture = new Texture();
+            var file = this.pakFile.file(name);
+
+            if(file){
+                file.async("arraybuffer").then(function(buffer){
+                    texture.load(buffer);
+                }, function(error){
+                    Console.current.writeLine("Failed to load texture " + texture + ": " + error)
+                });
+            }
+
+            this.textures[name] = texture;
+            return texture;
+        }
     }
 
     /**
