@@ -67,11 +67,41 @@ Vector3.max = function(v1, v2, vOut){
     vOut[2] = Math.max(v1[2], v2[2]);
 }
 
-var Quaternion = function(x, y, z){
-    return result = new Float32Array([x, y, z, 1.0]);
+var Quaternion = function(x, y, z, amount){
+    var a = amount / 2.0;
+    var factor = sin(a);
+    
+    result = new Float32Array([x * factor, y * factor, z * factor, Math.cos(a)]);
+
+    Quaternion.normalize(result, result);
+
+    return result;
 }
 Quaternion.zero = Quaternion(0, 0, 0);
 Quaternion.one = Quaternion(1, 1, 1);
+Quaternion.rotate = function(q1, q2, output){
+    //TODO
+}
+Quaternion.length = function(input){
+    return Math.sqrt((input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]) + (input[3] * input[3]));
+}
+Quaternion.normalize = function(input, output){
+    var l = Quaternion.length(input);
+
+    if(l == 0.0){
+        output[0] = 0.0;
+        output[1] = 0.0;
+        output[2] = 0.0;
+        output[3] = 0.0;
+    }else{
+        output[0] = input[0] / l;
+        output[1] = input[1] / l;
+        output[2] = input[2] / l;
+        output[3] = input[3] / l;
+    }
+
+    return output;
+}
 Quaternion.rotationMatrix = function(quaternion, outMatrix){
     if(!outMatrix){
         outMatrix = new Matrix4();
