@@ -67,82 +67,100 @@ Vector3.max = function(v1, v2, vOut){
     vOut[2] = Math.max(v1[2], v2[2]);
 }
 
-var Quaternion = function(x, y, z, amount){
-    var a = amount / 2.0;
-    var factor = sin(a);
-    
-    result = new Float32Array([x * factor, y * factor, z * factor, Math.cos(a)]);
-
-    Quaternion.normalize(result, result);
+var Quaternion = function(x, y, z, rads){
+    var result = new Float32Array(4);
+    Quaternion.set(result, x, y, z, rads);
 
     return result;
 }
-Quaternion.zero = Quaternion(0, 0, 0);
-Quaternion.one = Quaternion(1, 1, 1);
-Quaternion.rotate = function(q1, q2, output){
-    //TODO
-}
-Quaternion.length = function(input){
-    return Math.sqrt((input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]) + (input[3] * input[3]));
-}
-Quaternion.normalize = function(input, output){
-    var l = Quaternion.length(input);
+{
+    var quaternionBuffer = new Quaternion(0, 0, 0, 1.0);
 
-    if(l == 0.0){
-        output[0] = 0.0;
-        output[1] = 0.0;
-        output[2] = 0.0;
-        output[3] = 0.0;
-    }else{
-        output[0] = input[0] / l;
-        output[1] = input[1] / l;
-        output[2] = input[2] / l;
-        output[3] = input[3] / l;
+    Quaternion.zero = Quaternion(0, 0, 0);
+    Quaternion.one = Quaternion(1, 1, 1);
+    
+    Quaternion.rotate = function(q, x, y, z, rads, output){
+        Quaternion.set(quaternionBuffer, x, y, z, rads);
+        Quaternion.mul(q1, quaternionBuffer, output);
+        return output;
     }
+    Quaternion.mul = function(q1, q2, ouput){
+        // TODO
 
-    return output;
-}
-Quaternion.rotationMatrix = function(quaternion, outMatrix){
-    if(!outMatrix){
-        outMatrix = new Matrix4();
     }
+    Quaternion.set = function(q, x, y, z, rads){
+        var a = rads / 2.0;
+        var factor = sin(a);
+        
+        result[0] = x * factor;
+        result[1] = y * factor;
+        result[2] = z * factor;
+        result[3] = Math.cos(a);
 
-    var x = quaternion[0];
-    var y = quaternion[1];
-    var z = quaternion[2];
-    var w = quaternion[3];
+        Quaternion.normalize(result, result);
+    }
+    Quaternion.length = function(input){
+        return Math.sqrt((input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]) + (input[3] * input[3]));
+    }
+    Quaternion.normalize = function(input, output){
+        var l = Quaternion.length(input);
 
-    var x2 = x * x;
-    var y2 = y * y;
-    var z2 = z * z;
-    var xy = x * y;
-    var xz = x * z;
-    var yz = y * z;
-    var wx = w * x;
-    var wy = w * y;
-    var wz = w * z;
+        if(l == 0.0){
+            output[0] = 0.0;
+            output[1] = 0.0;
+            output[2] = 0.0;
+            output[3] = 0.0;
+        }else{
+            output[0] = input[0] / l;
+            output[1] = input[1] / l;
+            output[2] = input[2] / l;
+            output[3] = input[3] / l;
+        }
 
-    outMatrix[0] = 1.0 - 2.0 * (y2 + z2);
-    outMatrix[4] = 2.0 * (xy - wz);
-    outMatrix[8] = 2.0 * (xz + wy);
-    outMatrix[12] = 0.0;
+        return output;
+    }
+    Quaternion.rotationMatrix = function(quaternion, outMatrix){
+        if(!outMatrix){
+            outMatrix = new Matrix4();
+        }
 
-    outMatrix[1] = 2.0 * (xy + wz);
-    outMatrix[5] = 1.0 - 2.0 * (x2 + z2);
-    outMatrix[9] = 2.0 * (yz - wx);
-    outMatrix[13] = 0.0;
+        var x = quaternion[0];
+        var y = quaternion[1];
+        var z = quaternion[2];
+        var w = quaternion[3];
 
-    outMatrix[2] = 2.0 * (xz - wy);
-    outMatrix[6] = 2.0 * (yz + wx);
-    outMatrix[10] = 1.0 - 2.0 * (x2 + y2);
-    outMatrix[14] = 0.0
+        var x2 = x * x;
+        var y2 = y * y;
+        var z2 = z * z;
+        var xy = x * y;
+        var xz = x * z;
+        var yz = y * z;
+        var wx = w * x;
+        var wy = w * y;
+        var wz = w * z;
 
-    outMatrix[3] = 0.0;
-    outMatrix[7] = 0.0;
-    outMatrix[11] = 0.0;
-    outMatrix[15] = 1.0;
+        outMatrix[0] = 1.0 - 2.0 * (y2 + z2);
+        outMatrix[4] = 2.0 * (xy - wz);
+        outMatrix[8] = 2.0 * (xz + wy);
+        outMatrix[12] = 0.0;
 
-    return outMatrix;
+        outMatrix[1] = 2.0 * (xy + wz);
+        outMatrix[5] = 1.0 - 2.0 * (x2 + z2);
+        outMatrix[9] = 2.0 * (yz - wx);
+        outMatrix[13] = 0.0;
+
+        outMatrix[2] = 2.0 * (xz - wy);
+        outMatrix[6] = 2.0 * (yz + wx);
+        outMatrix[10] = 1.0 - 2.0 * (x2 + y2);
+        outMatrix[14] = 0.0
+
+        outMatrix[3] = 0.0;
+        outMatrix[7] = 0.0;
+        outMatrix[11] = 0.0;
+        outMatrix[15] = 1.0;
+
+        return outMatrix;
+    }
 }
 
 var Matrix4 = function( a = 1, b = 0, c = 0, d = 0, 

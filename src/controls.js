@@ -40,6 +40,10 @@ var Controls = function(canvas){
 }
 {
     Controls.prototype.init = function(canvas){
+        // Mouse controls
+        // Follow roation from https://stackoverflow.com/questions/7842408/rotating-quaternions-based-on-mouse-movement-opengl-and-java
+
+        // Keyboard Controls
         this.controls = {
             "Horizontal" : new ControlValue(),
             "Vertical": new ControlValue()
