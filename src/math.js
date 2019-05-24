@@ -36,6 +36,13 @@ Vector3.length = function(vector){
 Vector3.dot = function(vector1, vector2){
     return vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector[2];
 }
+Vector3.cross = function(a, b, output){
+    output[0] = a[1] * b[2] - a[2] * b[1];
+    output[1] = a[2] * b[0] - a[0] * b[2];
+    output[2] = a[0] * b[1] - a[1] * b[0];
+
+    return output;
+}
 Vector3.scale = function(inputVector, scale, outputVector){
     outputVector[0] = inputVector[0] * scale;
     outputVector[1] = inputVector[1] * scale;
@@ -82,11 +89,26 @@ var Quaternion = function(x, y, z, rads){
     Quaternion.rotate = function(q, x, y, z, rads, output){
         Quaternion.set(quaternionBuffer, x, y, z, rads);
         Quaternion.mul(q1, quaternionBuffer, output);
+        Quaternion.normalize(output, output);
         return output;
     }
     Quaternion.mul = function(q1, q2, ouput){
-        // TODO
+        // = [q2.w * q1.w - dot(q2.xyz, q1.xyz), q2.w * q1.xyz + q1.w * q2.xyz + cross(q1.xyz, q2.xyz)]
+        var dot = Vector3.dot(q2, q1);
+        var vector = new Vector3(
+            q2[3] * q1[0] + q1[3] * q2[0],
+            q2[3] * q1[1] + q1[3] * q2[1],
+            q2[3] * q1[2] + q1[3] * q2[2]
+        );
 
+        Vector3.cross(q1, q2, output);
+
+        output[0] += vector[0];
+        output[1] += vector[1];
+        output[2] += vector[2];
+        output[3] = q2[3] * q1[3] - dot;
+
+        return output;
     }
     Quaternion.set = function(q, x, y, z, rads){
         var a = rads / 2.0;
