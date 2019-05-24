@@ -22,8 +22,11 @@ var FileLexer = function(file){
 
     function convertFileToTokens(file){
         var tokens = [];
+
+        // Remove any comments.
         var text = file.replace(/(\/\*(.|\n)*?\*\/)|(\/\/.*$)/gm, "");
 
+        // Split each line.
         var lines = text.split("\n");
 
         for(var i = 0; i < lines.length; ++i){
