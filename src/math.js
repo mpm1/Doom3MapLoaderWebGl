@@ -80,12 +80,43 @@ var Quaternion = function(x, y, z, rads){
 
     return result;
 }
+Quaternion.set = function(q, x, y, z, rads){
+    var a = rads / 2.0;
+    var factor = Math.sin(a);
+    
+    result[0] = x * factor;
+    result[1] = y * factor;
+    result[2] = z * factor;
+    result[3] = Math.cos(a);
+
+    Quaternion.normalize(result, result);
+}
+Quaternion.getLength = function(input){
+    return Math.sqrt((input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]) + (input[3] * input[3]));
+}
+Quaternion.normalize = function(input, output){
+    var l = Quaternion.getLength(input);
+
+    if(l == 0.0){
+        output[0] = 0.0;
+        output[1] = 0.0;
+        output[2] = 0.0;
+        output[3] = 0.0;
+    }else{
+        output[0] = input[0] / l;
+        output[1] = input[1] / l;
+        output[2] = input[2] / l;
+        output[3] = input[3] / l;
+    }
+
+    return output;
+}
 {
     var quaternionBuffer = new Quaternion(0, 0, 0, 1.0);
 
     Quaternion.zero = Quaternion(0, 0, 0);
     Quaternion.one = Quaternion(1, 1, 1);
-    
+
     Quaternion.rotate = function(q, x, y, z, rads, output){
         Quaternion.set(quaternionBuffer, x, y, z, rads);
         Quaternion.mul(q1, quaternionBuffer, output);
@@ -110,37 +141,7 @@ var Quaternion = function(x, y, z, rads){
 
         return output;
     }
-    Quaternion.set = function(q, x, y, z, rads){
-        var a = rads / 2.0;
-        var factor = sin(a);
-        
-        result[0] = x * factor;
-        result[1] = y * factor;
-        result[2] = z * factor;
-        result[3] = Math.cos(a);
 
-        Quaternion.normalize(result, result);
-    }
-    Quaternion.length = function(input){
-        return Math.sqrt((input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]) + (input[3] * input[3]));
-    }
-    Quaternion.normalize = function(input, output){
-        var l = Quaternion.length(input);
-
-        if(l == 0.0){
-            output[0] = 0.0;
-            output[1] = 0.0;
-            output[2] = 0.0;
-            output[3] = 0.0;
-        }else{
-            output[0] = input[0] / l;
-            output[1] = input[1] / l;
-            output[2] = input[2] / l;
-            output[3] = input[3] / l;
-        }
-
-        return output;
-    }
     Quaternion.rotationMatrix = function(quaternion, outMatrix){
         if(!outMatrix){
             outMatrix = new Matrix4();
