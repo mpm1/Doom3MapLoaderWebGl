@@ -250,6 +250,7 @@ function Display(canvas){
 
         this.size = new Uint16Array([canvas.width, canvas.height]);
         this.gl = gl;
+
         this.shaders = { 
             "test" : createShaderProgram(gl, "test", testVertex, testFragment, [
                 { name: "positionAttribute", glName: "a_position", type: "attribute" },
@@ -262,6 +263,7 @@ function Display(canvas){
             ]) 
         };
 
+        this.showBounds = false;
         this.boundsRenderer = new BoundsTester(gl, createShaderProgram);
 
         this.resize(canvas.width, canvas.height);
@@ -270,7 +272,7 @@ function Display(canvas){
     Display.prototype.draw = function(lightCluster, camera){
         var gl = this.gl;
         var program = this.shaders.test;
-        var boundsRenderer = this.boundsRenderer;
+        var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
 
         gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
@@ -311,9 +313,10 @@ function Display(canvas){
                 //gl.drawElements(gl.LINES, index.length, gl.UNSIGNED_SHORT, 0);
 
                 if(boundsRenderer != null){
-                    // TEMP: draw the bounds
+                    gl.disable(gl.DEPTH_TEST);
                     boundsRenderer.draw(gl, brush.bounds, camera.transform.matrix, camera.projectionMatrix);
                     gl.useProgram(program);
+                    gl.enable(gl.DEPTH_TEST);
                 }
             });
         })

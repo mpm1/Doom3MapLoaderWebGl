@@ -5,13 +5,22 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
     this.map = null;
     this.display = new Display($(canvasPath)[0]);
 
-    this.console.addFunction("loadpak", new ConsoleFunction("loadpak", "Loads a pk4 file from a url into memory.", this.loadPk4));
-    this.console.addFunction("loadmap", new ConsoleFunction("loadmap", "Loads a map from the currently loaded pk4 file.", this.loadMap));
+    this.console.addFunction("loadpak", new ConsoleFunction("loadpak", "Loads a pk4 file from a url into memory.", this.loadPk4, this));
+    this.console.addFunction("loadmap", new ConsoleFunction("loadmap", "Loads a map from the currently loaded pk4 file.", this.loadMap, this));
+    this.console.addFunction("showbounds", new ConsoleFunction("showbounds", "Shows the map object bouundries", this.showBounds, this));
+    this.console.addFunction("hidebounds", new ConsoleFunction("hidebounds", "Hides the map object bouundries", this.hideBounds, this));
 
     var _this = this;
-    this.loadPk4("./test/q3dm1.pk4").then(function(pak){ _this.loadMap("q3dm1"); });
+    this.loadPk4("./test/q3dm2.pk4").then(function(pak){ _this.loadMap("q3dm2"); });
 }
 {
+    Game.prototype.showBounds = function(){
+        this.display.showBounds = true;
+    }
+    Game.prototype.hideBounds = function(){
+        this.display.showBounds = false;
+    }
+
     Game.prototype.loadPk4 = function(url){
         this.console.writeLine("Loading pak file: " + url);
         var game = this;

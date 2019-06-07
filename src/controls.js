@@ -14,6 +14,47 @@ KeyControl.prototype.update = function (time){
     }
 }
 
+var MouseControl = function(controllerName, multiplier, canvas){
+    this.multiplier = multiplier;
+    this.controlName = controlName;
+    this.lastDeltaRaw = new Float32Array([0.0, 0.0]);
+    this.lastDeltaNormal = new Float32Array([0.0, 0.0]);
+    this.location = [0, 0];
+
+    function getMousePosition(mouseEvent){
+        // TODO: Set the location value
+
+        this.lastDeltaRaw.fill(0);
+        this.lastDeltaNormal.fill(0);
+    }
+
+    canvas.onmouseenter = function(mouseEvent){
+        getMousePosition(mouseEvent);
+    }
+
+    canvas.onmousemove = function(mouseEvent){
+        var location = this.location;
+        var x = location[0];
+        var y = location[1];
+
+        getMousePosition(mouseEvent);
+
+        var raw = this.lastDeltaRaw;
+        raw[0] = location[0] - x;
+        raw[1] = location[1] - y;
+
+        var magnitude = raw[0] * raw[0] + raw[1] * raw[1];
+
+        if(magnitude > 0.0){
+            var normal = this.lastDeltaNormal;
+            magnitude = Math.sqrt(magnitude);
+
+            normal[0] = raw[0] / magnitude;
+            normal[1] = raw[1] / magnitude;
+        }
+    }
+}
+
 var ControlValue = function(){
     this.value = 0.0;
     this.rawValue = 0.0;
@@ -46,7 +87,9 @@ var Controls = function(canvas){
         // Keyboard Controls
         this.controls = {
             "Horizontal" : new ControlValue(),
-            "Vertical": new ControlValue()
+            "Vertical": new ControlValue(),
+            "LookVertical": new ControlValue(),
+            "LookHorizontal": new ControlValue()
         };
 
         var keys = new Array(255);
@@ -56,11 +99,11 @@ var Controls = function(canvas){
         keys[83] = new KeyControl("Vertical", -1.0);
         keys[40] = new KeyControl("Vertical", -1.0);
 
-        keys[68] = new KeyControl("Horizontal", 1.0);
-        keys[39] = new KeyControl("Horizontal", 1.0);
+        keys[68] = new KeyControl("Horizontal", -1.0);
+        keys[39] = new KeyControl("Horizontal", -1.0);
 
-        keys[65] = new KeyControl("Horizontal", -1.0);
-        keys[37] = new KeyControl("Horizontal", -1.0);
+        keys[65] = new KeyControl("Horizontal", 1.0);
+        keys[37] = new KeyControl("Horizontal", 1.0);
         this.keys = keys;
 
         window.addEventListener("keydown", event => {

@@ -1,10 +1,12 @@
-function ConsoleFunction(name, description, functionCall){
+function ConsoleFunction(name, description, functionCall, caller){
     this.name = name;
     this.description = description;
     this.functionCall = functionCall;
+    this.caller = caller === undefined ? null : caller;
 }
 ConsoleFunction.prototype.execute = function(parameters){
-    this.functionCall.apply(this, parameters);
+
+    this.functionCall.apply(this.caller == null ? this : this.caller, parameters);
 }
 
 function Console(inputElement, outputElement, submitButton){
