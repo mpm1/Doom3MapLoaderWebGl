@@ -35,11 +35,11 @@ var testFragment = `#version 300 es
 
     void main(){
         vec3 n = normalize(v_normal);
-        float nDotL = dot(n, normalize(vec3(-1, -1, -1)));
+        float nDotL = dot(n, normalize(vec3(-1, 1, 1)));
 
         outColor = texture(uMap, v_textureCoord);
         outColor.a = 1.0;
-        //outColor.rgb *= max(0.5, nDotL);
+        outColor.rgb *= max(0.1, nDotL);
     }
 `
 

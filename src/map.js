@@ -392,7 +392,7 @@ var ReadableVertex = function(){
     this.g = 0;
     this.b = 0;
 }
-ReadableVertex.readOrder = ["x", "z", "y", "u", "v", "nx", "ny", "nz", "r", "g", "b"];
+ReadableVertex.readOrder = ["x", "z", "y", "u", "v", "nx", "nz", "ny", "r", "g", "b"];
 ReadableVertex.writeOrder = ["x", "y", "z", "u", "v", "nx", "ny", "nz", "r", "g", "b"]; // This is done since we flip x and y.
 ReadableVertex.stride = ReadableVertex.readOrder.length * 4;
 ReadableVertex.positionOffset = 0 * 4;
