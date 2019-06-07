@@ -32,6 +32,7 @@
         </div>
 
         <script type="text/javascript">
+            var speed = 2.0;
             var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
             var controls = new Controls($("#gameCanvas")[0]);
 
@@ -53,7 +54,7 @@
                         v = v / magnitude;
                     }
 
-                    map.camera.transform.translate(h, 0, v);
+                    map.camera.transform.translate(h * speed, 0, v * speed);
                 }
             }
 

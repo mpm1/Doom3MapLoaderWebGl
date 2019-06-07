@@ -6,6 +6,10 @@ function isPositivePower2(a){
     return (a & 0x00000001) == 0;
 }
 
+function degreeToRadins(degrees){
+    return (degrees * Math.PI) / 180.0;
+}
+
 var Vector3 = function(x, y, z){
     return result = new Float32Array([x, y, z, 1.0]);
 }
@@ -214,19 +218,21 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
         return Matrix4.multiplyMatrix(matrix, bufferMatrix, outMatrix);
     }
 
+    Matrix4.identity = function(outMatrix){
+        outMatrix.fill(0);
+        outMatrix[0] = outMatrix[5] = outMatrix[10] = outMatrix[15] = 1.0;
+    }
+
     Matrix4.translationMatrix = function(x, y, z, outMatrix){
         if(!outMatrix){
             outMatrix = new Matrix4();
         }
 
-
-        outMatrix[0] = outMatrix[5] = outMatrix[10] = outMatrix[15] = 1.0;
-        outMatrix[1] = outMatrix[2] = outMatrix[3] = outMatrix[4] = outMatrix[6] = outMatrix[7] = outMatrix[8] = outMatrix[9] = outMatrix[11] = 0.0;
+        Matrix4.identity(outMatrix);
 
         outMatrix[12] = x;
         outMatrix[13] = y;
         outMatrix[14] = z;
-        outMatrix[15] = 1.0;
     
         return outMatrix;
     }
@@ -266,7 +272,7 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
 
         x = a[1];
         y = a[5];
-        z = a[8];
+        z = a[9];
         w = a[13];
         outMatrix[1] = x * b[0] + y * b[1] + z * b[2] + w * b[3];
         outMatrix[5] = x * b[4] + y * b[5] + z * b[6] + w * b[7];
@@ -275,7 +281,7 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
 
         x = a[2];
         y = a[6];
-        z = a[9];
+        z = a[10];
         w = a[14];
         outMatrix[2] = x * b[0] + y * b[1] + z * b[2] + w * b[3];
         outMatrix[6] = x * b[4] + y * b[5] + z * b[6] + w * b[7];
@@ -284,7 +290,7 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
 
         x = a[3];
         y = a[7];
-        z = a[10];
+        z = a[11];
         w = a[15];
         outMatrix[3] = x * b[0] + y * b[1] + z * b[2] + w * b[3];
         outMatrix[7] = x * b[4] + y * b[5] + z * b[6] + w * b[7];

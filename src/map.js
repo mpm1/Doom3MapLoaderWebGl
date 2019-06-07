@@ -15,45 +15,12 @@ var Transform = function(position, rotation, scale){
 {
     const bufferMatrix = new Matrix4();
 
-    function updateMatrix(matrix){
-        // Move to position
-        Matrix4.translationMatrix(this.position[0], this.position[1], this.position[2], bufferMatrix);
-
-        // Rotate the matrix
-        Matrix4.rotateByQuaternion(bufferMatrix, this.rotation, matrix);
-
-        return matrix;
-    }
-
     Transform.prototype.init = function(position, rotation, scale){
-        var modelMatrix = new Matrix4();
-        var rotationMatrix = new Matrix4();
+        this.matrix = new Matrix4();
 
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.translationChanged = true;
-        this.rotationChanged = true;
-
-        Object.defineProperty(this, "matrix", {
+        Object.defineProperty(this, "position", {
             get: function(){
-                if(this.translationChanged || this.rotationChanged){
-                    updateMatrix.call(this, modelMatrix);
-                    this.translationChanged = false;
-                }
-
-                return modelMatrix;
-            }
-        })
-
-        Object.defineProperty(this, "rotationMatrix", {
-            get: function(){
-                if(this.rotationChanged){
-                    Quaternion.rotationMatrix(this.rotation, rotationMatrix);
-                    this.rotationChanged = false;
-                }
-
-                return rotationMatrix;
+                //TODO
             }
         })
     }
@@ -63,22 +30,7 @@ var Transform = function(position, rotation, scale){
     }
 
     Transform.prototype.translate = function(x, y, z){
-        this.translationChanged = true;
-
-        var px = this.position[0];
-        var py = this.position[1];
-        var pz = this.position[2];
-
-        this.position[0] = x;
-        this.position[1] = y;
-        this.position[2] = z;
-        this.position[3] = 1.0;
-        
-        var translation = Matrix4.multiplyVector(this.rotationMatrix, this.position, this.position);
-
-        this.position[0] += px;
-        this.position[1] += py;
-        this.position[2] += pz;
+        Matrix4.translate(this.matrix, x, y, z, this.matrix);
     }
 }
 
@@ -88,25 +40,34 @@ var Camera = function(){
 {
     Camera.prototype.init = function(){
         this.transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
-        this.viewMatrix = new Matrix4();
+        this.projectionMatrix = new Matrix4();
+    }
+
+    Camera.createFrustrum = function(left, right, bottom, top, near, far, matrix){
+        var invRL = 1.0 / (right - left);
+        var invTB = 1.0 / (top - bottom);
+        var invNF = 1.0 / (near - far);
+
+        matrix.fill(0);
+
+        matrix[0] = (2.0 * near) * invRL;
+        matrix[5] = (2.0 * near) * invTB;
+        matrix[10] = (far + near) * invNF;
+        matrix[11] = -1.0;
+        matrix[12] = -near * (right + left) * invRL;
+        matrix[13] = -near * (top + bottom) * invTB;
+        matrix[14] = 2.0 * far * near * invNF;
+
+        return matrix;
     }
 
     Camera.prototype.setPerspective = function(fovInDegrees, aspectRatio, near, far){
-        var rads = (fovInDegrees * Math.PI) / 180;
-        var f = Math.tan(Math.PI * 0.5 - 0.5 * rads);
-        var rangeInv = 1.0 / (near - far);
+        var top = near * Math.tan(degreeToRadins(fovInDegrees) / 2.0);
+        var bottom = -top;
+        var right = top * aspectRatio;
+        var left = -right;
 
-        var matrix = this.viewMatrix;
-
-        matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[8] = matrix[9] = matrix[12] = matrix[13] = matrix[15] = 0.0;
-
-        matrix[0] = f / aspectRatio;
-        matrix[5] = f;
-        matrix[10] = (near + far) * rangeInv;
-        matrix[11] = -1.0;
-        matrix[14] = near * far * rangeInv * 2.0;
-
-        return matrix;
+        return Camera.createFrustrum(left, right, bottom, top, near, far, this.projectionMatrix);
     }
 }
 
@@ -431,7 +392,8 @@ var ReadableVertex = function(){
     this.g = 0;
     this.b = 0;
 }
-ReadableVertex.readOrder = ["x", "y", "z", "u", "v", "nx", "ny", "nz", "r", "g", "b"];
+ReadableVertex.readOrder = ["x", "z", "y", "u", "v", "nx", "ny", "nz", "r", "g", "b"];
+ReadableVertex.writeOrder = ["x", "y", "z", "u", "v", "nx", "ny", "nz", "r", "g", "b"]; // This is done since we flip x and y.
 ReadableVertex.stride = ReadableVertex.readOrder.length * 4;
 ReadableVertex.positionOffset = 0 * 4;
 ReadableVertex.textureOffset = 3 * 4;
@@ -491,8 +453,8 @@ var Brush = function(){
             Vector3.min(vCheck, minBounds, minBounds);
             Vector3.max(vCheck, maxBounds, maxBounds);
 
-            for(var v = 0; v < ReadableVertex.readOrder.length; ++v){
-                this.vertecies[vIndex + v] = vertex[ReadableVertex.readOrder[v]];
+            for(var v = 0; v < ReadableVertex.writeOrder.length; ++v){
+                this.vertecies[vIndex + v] = vertex[ReadableVertex.writeOrder[v]];
             }
         }
 
@@ -580,7 +542,7 @@ function Map(mapName, pakFile){
         this.areas = {};
         this.camera = new Camera();
 
-        this.camera.setPerspective(35.0, 16.0 / 9.0, 0.1, 2000.0);
+        this.camera.setPerspective(100.0, 16.0 / 9.0, 0.1, 1000.0);
     }
 
     /**
@@ -604,10 +566,7 @@ function Map(mapName, pakFile){
                     loadMap.call(map, new FileLexer(text));
 
                     // Temp code to set the starting position.
-                    var position = map.camera.transform.position;
-                    position[0] = -416;
-                    position[1] = -1288;
-                    position[2] = 0;
+                    var position = map.camera.transform.translate(-416, -100, -1288);
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));
