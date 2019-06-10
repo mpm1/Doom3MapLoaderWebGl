@@ -84,7 +84,7 @@ var Quaternion = function(x, y, z, rads){
 
     return result;
 }
-Quaternion.set = function(q, x, y, z, rads){
+Quaternion.set = function(result, x, y, z, rads){
     var a = rads / 2.0;
     var factor = Math.sin(a);
     
@@ -93,7 +93,7 @@ Quaternion.set = function(q, x, y, z, rads){
     result[2] = z * factor;
     result[3] = Math.cos(a);
 
-    //Quaternion.normalize(result, result);
+    return Quaternion.normalize(result, result);
 }
 Quaternion.getLength = function(input){
     return Math.sqrt((input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]) + (input[3] * input[3]));
@@ -210,7 +210,7 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
     }
 
     Matrix4.rotate = function(matrix, x, y, z, rads, outMatrix){
-        Quaternion.set(quaternionBuffer, x, y, z, rads);
+        quaternianBuffer = Quaternion.set(quaternionBuffer, x, y, z, rads);
 
         return Matrix4.rotateByQuaternion(matrix, quaternionBuffer, outMatrix);
     }

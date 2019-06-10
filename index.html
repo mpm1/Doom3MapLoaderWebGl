@@ -36,7 +36,7 @@
             var strifeSpeed = 3.0;
             var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
             var controls = new Controls($("#gameCanvas")[0]);
-            controls.controls.Mouse.multiplier = 0.4;
+            controls.controls.Mouse.multiplier = 0.01;
 
             game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
             
@@ -57,7 +57,7 @@
                     // Look controls
                     var mouse = controls.controls.Mouse;
                     if(mouse.magnitude > 0.0){
-                        map.camera.transform.rotate(Math.sqrt(mouse.magnitude) * 0.001, mouse.normal[1], 0.0, 0.0);
+                        map.camera.transform.rotate(mouse.magnitude, mouse.normal[1], mouse.normal[0], 0.0);
                     }
                 }
             }
