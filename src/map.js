@@ -25,8 +25,8 @@ var Transform = function(position, rotation, scale){
         })
     }
 
-    Transform.prototype.rotate = function(amount, x, y, z){
-        this.rotationMatrix = true;
+    Transform.prototype.rotate = function(rads, x, y, z){
+        Matrix4.rotate(this.matrix, x, y, z, rads, this.matrix);
     }
 
     Transform.prototype.translate = function(x, y, z){

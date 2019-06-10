@@ -93,7 +93,7 @@ Quaternion.set = function(q, x, y, z, rads){
     result[2] = z * factor;
     result[3] = Math.cos(a);
 
-    Quaternion.normalize(result, result);
+    //Quaternion.normalize(result, result);
 }
 Quaternion.getLength = function(input){
     return Math.sqrt((input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]) + (input[3] * input[3]));
@@ -116,7 +116,7 @@ Quaternion.normalize = function(input, output){
     return output;
 }
 {
-    var quaternionBuffer = new Quaternion(0, 0, 0, 1.0);
+    let quaternionBuffer = new Quaternion(0, 0, 0, 1.0);
 
     Quaternion.zero = Quaternion(0, 0, 0);
     Quaternion.one = Quaternion(1, 1, 1);
@@ -197,7 +197,8 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
     return new Float32Array([a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]);
 }
 {
-    const bufferMatrix = new Matrix4();
+    let bufferMatrix = new Matrix4();
+    let quaternionBuffer = new Quaternion(1.0, 0.0, 0.0, 0.0);
     Matrix4.rotateByQuaternion = function(matrix, quaternion, outMatrix){
         if(!outMatrix){
             outMatrix = new Matrix4;
@@ -206,6 +207,12 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
         Quaternion.rotationMatrix(quaternion, bufferMatrix);
 
         return Matrix4.multiplyMatrix(matrix, bufferMatrix, outMatrix);
+    }
+
+    Matrix4.rotate = function(matrix, x, y, z, rads, outMatrix){
+        Quaternion.set(quaternionBuffer, x, y, z, rads);
+
+        return Matrix4.rotateByQuaternion(matrix, quaternionBuffer, outMatrix);
     }
 
     Matrix4.translate = function(matrix, x, y, z, outMatrix){
