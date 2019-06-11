@@ -213,7 +213,7 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
 
         Quaternion.rotationMatrix(quaternion, bufferMatrix);
 
-        return Matrix4.multiplyMatrix(matrix, bufferMatrix, outMatrix);
+        return Matrix4.multiplyMatrix(bufferMatrix,matrix, outMatrix);
     }
 
     Matrix4.rotate = function(matrix, x, y, z, rads, outMatrix){
@@ -270,6 +270,7 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
     }
 
     Matrix4.multiplyMatrix = function(a, b, outMatrix){
+        // CHANGE SO WE CAN HAVE THE RESULT END UP IN EITHER A OR B
         if(!outMatrix){
             outMatrix = new Matrix4();
         }
