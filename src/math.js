@@ -54,6 +54,13 @@ Vector3.scale = function(inputVector, scale, outputVector){
 
     return outputVector;
 }
+Vector3.add = function(a, b, outputVector){
+    outputVector[0] = a[0] + b[0];
+    outputVector[1] = a[1] + b[1];
+    outputVector[2] = a[2] + b[2];
+
+    return outputVector;
+}
 Vector3.normalized = function(inputVector, outputVector){
     var length = Vector3.length(inputVector);
 

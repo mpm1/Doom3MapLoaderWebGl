@@ -13,16 +13,38 @@ var Transform = function(position, rotation, scale){
     this.init(position, rotation, scale);
 }
 {
-    const bufferMatrix = new Matrix4();
-
     Transform.prototype.init = function(position, rotation, scale){
-        this.matrix = new Matrix4();
+        var matrix = new Matrix4();
+        var right = new Float32Array(matrix.buffer, 4 * 0, 3)
+        var up = new Float32Array(matrix.buffer, 4 * 4, 3);
+        var back = new Float32Array(matrix.buffer, 4 * 8, 3);
+        var position = new Float32Array(matrix.buffer, 4 * 12, 3);
 
         Object.defineProperty(this, "position", {
             get: function(){
-                //TODO
+                return position;
             }
         })
+
+        Object.defineProperty(this, "backward", {
+            get: function(){
+                return back;
+            }
+        });
+
+        Object.defineProperty(this, "right", {
+            get: function(){
+                return right;
+            }
+        });
+
+        Object.defineProperty(this, "up", {
+            get: function(){
+                return up;
+            }
+        });
+
+        this.matrix = matrix;
     }
 
     Transform.prototype.rotate = function(rads, x, y, z){
@@ -30,7 +52,9 @@ var Transform = function(position, rotation, scale){
     }
 
     Transform.prototype.translate = function(x, y, z){
-        Matrix4.translate(this.matrix, x, y, z, this.matrix);
+        this.position[0] += x;
+        this.position[1] += y;
+        this.position[2] += z;
     }
 }
 

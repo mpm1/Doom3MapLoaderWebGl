@@ -50,9 +50,17 @@
                     // Movement
                     var h = controls.controls.Horizontal.value;
                     var v = controls.controls.Vertical.value;
+
+                    var x, y, z;
+                    var backward = map.camera.transform.backward;
+                    var right = map.camera.transform.right;
+
+                    x = (-backward[0] * forwardSpeed * h) + (right[0] * strifeSpeed * v);
+                    y = (-backward[1] * forwardSpeed * h) + (right[1] * strifeSpeed * v);
+                    z = (-backward[2] * forwardSpeed * h) + (right[2] * strifeSpeed * v);
                     
                     // Horizontal movement and strifing movement are independent of each other.
-                    map.camera.transform.translate(h * strifeSpeed, 0, v * forwardSpeed);
+                    map.camera.transform.translate(x, y, z);
 
                     // Look controls
                     var mouse = controls.controls.Mouse;
