@@ -275,42 +275,59 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
             outMatrix = new Matrix4();
         }
 
+        var m00 = b[0];
+        var m01 = b[1];
+        var m02 = b[2];
+        var m03 = b[3];
+        var m10 = b[4];
+        var m11 = b[5];
+        var m12 = b[6];
+        var m13 = b[7];
+        var m20 = b[8];
+        var m21 = b[9];
+        var m22 = b[10];
+        var m23 = b[11];
+        var m30 = b[12];
+        var m31 = b[13];
+        var m32 = b[14];
+        var m33 = b[15];
+
+
         var x = a[0];
         var y = a[4];
         var z = a[8];
         var w = a[12];
-
-        outMatrix[0] = x * b[0] + y * b[1] + z * b[2] + w * b[3];
-        outMatrix[4] = x * b[4] + y * b[5] + z * b[6] + w * b[7];
-        outMatrix[8] = x * b[8] + y * b[9] + z * b[10] + w * b[11];
-        outMatrix[12] = x * b[12] + y * b[13] + z * b[14] + w * b[15];
+        outMatrix[0] = x * m00 + y * m01 + z * m02 + w * m03;
+        outMatrix[4] = x * m10 + y * m11 + z * m12 + w * m13;
+        outMatrix[8] = x * m20 + y * m21 + z * m22 + w * m23;
+        outMatrix[12] = x * m30 + y * m31 + z * m32 + w * m33;
 
         x = a[1];
         y = a[5];
         z = a[9];
         w = a[13];
-        outMatrix[1] = x * b[0] + y * b[1] + z * b[2] + w * b[3];
-        outMatrix[5] = x * b[4] + y * b[5] + z * b[6] + w * b[7];
-        outMatrix[9] = x * b[8] + y * b[9] + z * b[10] + w * b[11];
-        outMatrix[13] = x * b[12] + y * b[13] + z * b[14] + w * b[15];
+        outMatrix[1] = x * m00 + y * m01 + z * m02 + w * m03;
+        outMatrix[5] = x * m10 + y * m11 + z * m12 + w * m13;
+        outMatrix[9] = x * m20 + y * m21 + z * m22 + w * m23;
+        outMatrix[13] = x * m30 + y * m31 + z * m32 + w * m33;
 
         x = a[2];
         y = a[6];
         z = a[10];
         w = a[14];
-        outMatrix[2] = x * b[0] + y * b[1] + z * b[2] + w * b[3];
-        outMatrix[6] = x * b[4] + y * b[5] + z * b[6] + w * b[7];
-        outMatrix[10] = x * b[8] + y * b[9] + z * b[10] + w * b[11];
-        outMatrix[14] = x * b[12] + y * b[13] + z * b[14] + w * b[15];
+        outMatrix[2] = x * m00 + y * m01 + z * m02 + w * m03;
+        outMatrix[6] = x * m10 + y * m11 + z * m12 + w * m13;
+        outMatrix[10] = x * m20 + y * m21 + z * m22 + w * m23;
+        outMatrix[14] = x * m30 + y * m31 + z * m32 + w * m33;
 
         x = a[3];
         y = a[7];
         z = a[11];
         w = a[15];
-        outMatrix[3] = x * b[0] + y * b[1] + z * b[2] + w * b[3];
-        outMatrix[7] = x * b[4] + y * b[5] + z * b[6] + w * b[7];
-        outMatrix[11] = x * b[8] + y * b[9] + z * b[10] + w * b[11];
-        outMatrix[15] = x * b[12] + y * b[13] + z * b[14] + w * b[15];
+        outMatrix[3] = x * m00 + y * m01 + z * m02 + w * m03;
+        outMatrix[7] = x * m10 + y * m11 + z * m12 + w * m13;
+        outMatrix[11] = x * m20 + y * m21 + z * m22 + w * m23;
+        outMatrix[15] = x * m30 + y * m31 + z * m32 + w * m33;
 
         return outMatrix;
     }
