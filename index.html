@@ -36,7 +36,7 @@
             var strifeSpeed = 3.0;
             var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
             var controls = new Controls($("#gameCanvas")[0]);
-            controls.controls.Mouse.multiplier = 0.01;
+            controls.controls.Mouse.multiplier = 0.004;
 
             game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
             
@@ -47,25 +47,28 @@
                 if(map && map.isLoaded){
                     controls.update(time);
 
-                    // Movement
-                    var h = controls.controls.Horizontal.value;
-                    var v = controls.controls.Vertical.value;
-
-                    var x, y, z;
-                    var backward = map.camera.transform.backward;
-                    var right = map.camera.transform.right;
-
-                    x = (-backward[0] * forwardSpeed * h) + (right[0] * strifeSpeed * v);
-                    y = (-backward[1] * forwardSpeed * h) + (right[1] * strifeSpeed * v);
-                    z = (-backward[2] * forwardSpeed * h) + (right[2] * strifeSpeed * v);
-                    
-                    // Horizontal movement and strifing movement are independent of each other.
-                    map.camera.transform.translate(x, y, z);
-
                     // Look controls
                     var mouse = controls.controls.Mouse;
                     if(mouse.magnitude > 0.0){
                         map.camera.transform.rotate(mouse.magnitude, mouse.normal[1], mouse.normal[0], 0.0);
+                    }
+
+                    // Movement
+                    var h = controls.controls.Horizontal.value * strifeSpeed;
+                    var v = controls.controls.Vertical.value * forwardSpeed;
+
+                    if(h != 0.0 || v != 0.0){
+                        var x = 0.0, y = 0.0, z = 0.0;
+                        var backward = map.camera.transform.backward;
+                        var right = map.camera.transform.right;
+
+                        x = (backward[0] * v) + (right[0] * h);
+                        y = (backward[1] * v) + (right[1] * h);
+                        z = (backward[2] * v) + (right[2] * h);
+                    
+                        // Horizontal movement and strifing movement are independent of each other.
+                        map.camera.transform.translate(x, y, z);
+                        //map.camera.transform.translate(h, 0, v);
                     }
                 }
             }

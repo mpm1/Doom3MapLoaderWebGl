@@ -39,7 +39,7 @@ var testFragment = `#version 300 es
 
         outColor = texture(uMap, v_textureCoord);
         outColor.a = 1.0;
-        outColor.rgb *= max(0.1, nDotL);
+        outColor.rgb *= pow(max(0.5, nDotL), 2.0);
     }
 `
 

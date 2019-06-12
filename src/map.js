@@ -52,9 +52,10 @@ var Transform = function(position, rotation, scale){
     }
 
     Transform.prototype.translate = function(x, y, z){
-        this.position[0] += x;
-        this.position[1] += y;
-        this.position[2] += z;
+        var position = this.position;
+        position[0] += x;
+        position[1] += y;
+        position[2] += z;
     }
 }
 
@@ -590,7 +591,10 @@ function Map(mapName, pakFile){
                     loadMap.call(map, new FileLexer(text));
 
                     // Temp code to set the starting position.
-                    var position = map.camera.transform.translate(-416, -100, -1288);
+                    var position = map.camera.transform.position;
+                    position[0] = -416;
+                    position[1] = -100;
+                    position[2] = -1288;
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));
