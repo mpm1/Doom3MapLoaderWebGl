@@ -19,6 +19,7 @@ var Transform = function(position, rotation, scale){
         var up = new Float32Array(matrix.buffer, 4 * 4, 3);
         var back = new Float32Array(matrix.buffer, 4 * 8, 3);
         var position = new Float32Array(matrix.buffer, 4 * 12, 3);
+        var scale = new Vector3();
 
         Object.defineProperty(this, "position", {
             get: function(){
@@ -43,6 +44,16 @@ var Transform = function(position, rotation, scale){
                 return up;
             }
         });
+
+        Object.defineProperty(this, "scale", {
+            get: function(){
+                scale[0] = Vector3.length(right);
+                scale[1] = Vector3.length(up);
+                scale[2] = Vector3.length(back);
+
+                return scale;
+            }
+        })
 
         this.matrix = matrix;
     }
