@@ -13,8 +13,74 @@ var Transform = function(position, rotation, scale){
     this.init(position, rotation, scale);
 }
 {
+    let mat3Buffer = new Matrix3();
+    let vec3Buffer = new Vector3();
+
+    function inverseTransformationMatrix(inMatrix, outMatrix){
+        mat3Buffer[0] = inMatrix[0];
+        mat3Buffer[1] = inMatrix[1];
+        mat3Buffer[2] = inMatrix[2];
+        
+        mat3Buffer[3] = inMatrix[4];
+        mat3Buffer[4] = inMatrix[5];
+        mat3Buffer[5] = inMatrix[6];
+
+        mat3Buffer[6] = inMatrix[8];
+        mat3Buffer[7] = inMatrix[9];
+        mat3Buffer[8] = inMatrix[10];
+
+        var det = Matrix3.det(mat3Buffer);
+
+        // TODO: handle when the determinate != 1;
+
+        // Transpose the rotation
+        mat3Buffer[0] = inMatrix[0];
+        mat3Buffer[1] = inMatrix[4];
+        mat3Buffer[2] = inMatrix[8];
+        
+        mat3Buffer[3] = inMatrix[1];
+        mat3Buffer[4] = inMatrix[5];
+        mat3Buffer[5] = inMatrix[9];
+
+        mat3Buffer[6] = inMatrix[2];
+        mat3Buffer[7] = inMatrix[6];
+        mat3Buffer[8] = inMatrix[10];
+
+        // Find the new translation
+        vec3Buffer[0] = inMatrix[12];
+        vec3Buffer[1] = inMatrix[13];
+        vec3Buffer[2] = inMatrix[14];
+        vec3Buffer[3] = inMatrix[15];
+
+        Matrix3.multiplyVector(mat3Buffer, vec3Buffer, vec3Buffer);
+
+        // Put the matrix back together
+        outMatrix[0] = mat3Buffer[0];
+        outMatrix[1] = mat3Buffer[1];
+        outMatrix[2] = mat3Buffer[2];
+        outMatrix[3] = 0.0;
+
+        outMatrix[4] = mat3Buffer[3];
+        outMatrix[5] = mat3Buffer[4];
+        outMatrix[6] = mat3Buffer[5];
+        outMatrix[7] = 0.0;
+
+        outMatrix[8] = mat3Buffer[6];
+        outMatrix[9] = mat3Buffer[7];
+        outMatrix[10] = mat3Buffer[8];
+        outMatrix[11] = 0.0;
+
+        outMatrix[12] = vec3Buffer[0];
+        outMatrix[13] = vec3Buffer[1];
+        outMatrix[14] = vec3Buffer[2];
+        outMatrix[15] = vec3Buffer[3];
+
+        return outMatrix;
+    }
+
     Transform.prototype.init = function(position, rotation, scale){
         var matrix = new Matrix4();
+        var invMatrix = new Matrix4();
         var right = new Float32Array(matrix.buffer, 4 * 0, 3)
         var up = new Float32Array(matrix.buffer, 4 * 4, 3);
         var back = new Float32Array(matrix.buffer, 4 * 8, 3);
@@ -53,16 +119,31 @@ var Transform = function(position, rotation, scale){
 
                 return scale;
             }
-        })
+        });
+
+        Object.defineProperty(this, "invMatrix", {
+            get: function(){
+                if(this.stale){
+                    inverseTransformationMatrix(matrix, invMatrix);
+                    this.stale = false;
+                }
+                return invMatrix;
+            }
+        });
 
         this.matrix = matrix;
+        this.stale = true;
     }
 
     Transform.prototype.rotate = function(rads, x, y, z){
+        this.stale = true;
+
         Matrix4.rotate(this.matrix, x, y, z, rads, this.matrix);
     }
 
     Transform.prototype.translate = function(x, y, z){
+        this.stale = true;
+
         var position = this.position;
         position[0] += x;
         position[1] += y;

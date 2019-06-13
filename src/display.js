@@ -240,7 +240,7 @@ function Display(canvas){
     }
 
     function setShaderUniforms(gl, program, camera){
-        gl.uniformMatrix4fv(program.modelMatrixUniform, false, camera.transform.matrix);
+        gl.uniformMatrix4fv(program.modelMatrixUniform, false, camera.transform.invMatrix);
         gl.uniformMatrix4fv(program.viewMatrixUniform, false, camera.projectionMatrix);
         gl.uniform1i(program.mapUniform, 0);
     }

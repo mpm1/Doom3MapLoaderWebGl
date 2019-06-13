@@ -197,6 +197,50 @@ Quaternion.normalize = function(input, output){
     }
 }
 
+var Matrix3 = function(a = 1, b = 0, c = 0,
+                        d = 0, e = 1, f = 0,
+                        g = 0, h = 0, i = 1){
+    return new Float32Array([a, b, c, d, e, f, g, h, i]);
+}
+{
+    function matrix2Det(a, b, c, d){
+        /* Matrix looks like:
+        a b
+        c d 
+        */
+
+        return (a * c) - (b * d);
+    }
+
+    Matrix3.det = function(m){
+        /* Matrix looks like:
+        m[0] m[3] m[6]
+        m[1] m[4] m[7]
+        m[2] m[5] m[8] 
+        */
+
+        return (m[0] * matrix2Det(m[4], m[7], m[5], m[8])) 
+                - (m[3] * matrix2Det(m[1], m[7], m[2], m[8]))
+                + (m[6] * matrix2Det(m[1], m[4], m[2], m[5]));
+    }
+
+    Matrix3.multiplyVector = function(matrix, v, outVector){
+        if(!outVector){
+            outVector = new Vector3(0, 0, 0);
+        }
+
+        var x = v[0];
+        var y = v[1];
+        var z = v[2];
+
+        outVector[0] = matrix[0] * x + matrix[3] * y + matrix[6] * z;
+        outVector[1] = matrix[1] * x + matrix[4] * y + matrix[7] * z;
+        outVector[2] = matrix[2] * x + matrix[5] * y + matrix[8] * z;
+
+        return outVector;
+    }
+}
+
 var Matrix4 = function( a = 1, b = 0, c = 0, d = 0, 
                         e = 0, f = 1, g = 0, h = 0, 
                         i = 0, j = 0, k = 1, l = 0,
@@ -213,7 +257,7 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
 
         Quaternion.rotationMatrix(quaternion, bufferMatrix);
 
-        return Matrix4.multiplyMatrix(bufferMatrix,matrix, outMatrix);
+        return Matrix4.multiplyMatrix(matrix, bufferMatrix, outMatrix);
     }
 
     Matrix4.rotate = function(matrix, x, y, z, rads, outMatrix){
