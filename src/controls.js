@@ -14,44 +14,59 @@ KeyControl.prototype.update = function (time){
     }
 }
 
-var MouseControlValue = function(multiplier, canvas){
+var MouseControlValue = function(multiplier, element){
     this.multiplier = multiplier;
     this.magnitude = 0.0;
     this.deadZone = 0.0001;
     this.normal = new Float32Array([0.0, 0.0]);
     this.value = new Float32Array([0.0, 0.0]);
-    this.delta = new Float32Array([0.0, 0.0]);
-    this.location = [0, 0];
+
+    var delta = new Float32Array([0.0, 0.0]);
+    this.delta = delta;
 
     var _this = this;
 
-    function getMousePosition(mouseEvent){
-        _this.location[0] = mouseEvent.clientX;
-        _this.location[1] = mouseEvent.clientY;        
+    // Pointer locking
+    // Implemented from the tutorial: https://www.html5rocks.com/en/tutorials/pointerlock/intro/
+    var havePointerLock = false;
+    function lockChange(mouseEvent){
+        havePointerLock = !havePointerLock;
+
+        if(havePointerLock){
+            delta[0] = 0;
+            delta[1] = 0;
+        }
     }
 
-    canvas.onmouseenter = function(mouseEvent){
-        getMousePosition(mouseEvent);
+    var requestPointerLock = element.requestPointerLock ||
+        element.mozRequestPointerLock ||
+        element.webkitRequestPointerLock;
+
+    var exitPointerLock = element.exitPointerLock ||
+        element.mozExitPointerLock ||
+        element.webkitExitPointerLock;
+
+    document.addEventListener("pointerlockchange", lockChange, false);
+    document.addEventListener("mozpointerlockchange", lockChange, false);
+    document.addEventListener("webkitpointerlockchange", lockChange, false);
+    element.requestPointerLock();
+
+    // Mouse Movement
+    function mouseMove(mouseEvent){
+        if(havePointerLock){
+            delta[0] += (mouseEvent.movementX || mouseEvent.mozMovementX || mouseEvent.webkitMovementX || 0);
+            delta[1] += (mouseEvent.movementY || mouseEvent.mozMovementY || mouseEvent.webkitMovementY || 0);
+        }
     }
+    document.addEventListener("mousemove", mouseMove, false);
 
-    canvas.onmouseout = function(mouseEvent){
-        getMousePosition(mouseEvent);
+    // Add the ability to regrab the mouse lock.
+    function obtainMouseLock(){
+        if(!havePointerLock){
+            element.requestPointerLock();
+        }
     }
-
-    canvas.onmousemove = function(mouseEvent){
-        var location = _this.location;
-        var x = location[0];
-        var y = location[1];
-
-        getMousePosition(mouseEvent);
-
-        x = location[0] - x;
-        y = location[1] - y;
-
-        var delta = _this.delta;
-        delta[0] += x;
-        delta[1] += y;
-    }
+    element.addEventListener("click", obtainMouseLock, false);
 }
 MouseControlValue.prototype.reset = function(time){
     var value = this.value;
