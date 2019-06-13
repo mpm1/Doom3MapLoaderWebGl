@@ -693,7 +693,7 @@ function Map(mapName, pakFile){
         this.areas = {};
         this.camera = new Camera();
 
-        this.camera.setPerspective(100.0, 16.0 / 9.0, 0.1, 1000.0);
+        this.camera.setPerspective(80.0, 16.0 / 9.0, 0.1, 2000.0);
     }
 
     /**
