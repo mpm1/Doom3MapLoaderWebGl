@@ -46,16 +46,16 @@
 
                 if(map && map.isLoaded){
                     controls.update(time);
-                    var up = map.camera.transform.up;
-                    var backward = map.camera.transform.backward;
-                    var right = map.camera.transform.right;
 
                     // Look controls
                     var mouse = controls.controls.Mouse;
                     if(mouse.magnitude > 0.0){
+                        var up = map.camera.transform.invUp;
+                        var right = map.camera.transform.invRight;
+
                         // TODO: rotate around fixed world index.
-                        map.camera.transform.rotate(mouse.magnitude * mouse.normal[0], up[0], up[1], up[2]);
-                        map.camera.transform.rotate(mouse.magnitude * mouse.normal[1], right[0], right[1], right[2]);
+                        map.camera.transform.rotate(mouse.magnitude * -mouse.normal[0], up[0], up[1], up[2]);
+                        map.camera.transform.rotate(mouse.magnitude, -mouse.normal[1], 0, 0);
                     }
 
                     // Movement
@@ -64,6 +64,8 @@
 
                     if(h != 0.0 || v != 0.0){
                         var x = 0.0, y = 0.0, z = 0.0;
+                        var backward = map.camera.transform.backward;
+                        var right = map.camera.transform.right;
 
                         x = (backward[0] * v) + (right[0] * h);
                         y = (backward[1] * v) + (right[1] * h);

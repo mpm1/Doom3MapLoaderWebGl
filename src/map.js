@@ -80,12 +80,16 @@ var Transform = function(position, rotation, scale){
 
     Transform.prototype.init = function(position, rotation, scale){
         var matrix = new Matrix4();
-        var invMatrix = new Matrix4();
         var right = new Float32Array(matrix.buffer, 4 * 0, 3)
         var up = new Float32Array(matrix.buffer, 4 * 4, 3);
         var back = new Float32Array(matrix.buffer, 4 * 8, 3);
         var position = new Float32Array(matrix.buffer, 4 * 12, 3);
         var scale = new Vector3();
+
+        var invMatrix = new Matrix4();
+        var invRight = new Float32Array(invMatrix.buffer, 4 * 0, 3)
+        var invUp = new Float32Array(invMatrix.buffer, 4 * 4, 3);
+        var invBack = new Float32Array(invMatrix.buffer, 4 * 8, 3);
 
         Object.defineProperty(this, "position", {
             get: function(){
@@ -121,13 +125,35 @@ var Transform = function(position, rotation, scale){
             }
         });
 
+        // Inverse parameters
+        function validateInverseMatrix(){
+            if(this.stale){
+                inverseTransformationMatrix(matrix, invMatrix);
+                this.stale = false;
+            }
+        }
+
         Object.defineProperty(this, "invMatrix", {
             get: function(){
-                if(this.stale){
-                    inverseTransformationMatrix(matrix, invMatrix);
-                    this.stale = false;
-                }
+                validateInverseMatrix.call(this);
+
                 return invMatrix;
+            }
+        });
+
+        Object.defineProperty(this, "invUp", {
+            get: function(){
+                validateInverseMatrix.call(this);
+
+                return invUp;
+            }
+        });
+
+        Object.defineProperty(this, "invRight", {
+            get: function(){
+                validateInverseMatrix.call(this);
+                
+                return invRight;
             }
         });
 
