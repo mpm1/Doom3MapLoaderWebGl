@@ -487,6 +487,7 @@ var Area = function(){
 
         this.name = "";
         this.brushes = [];
+        this.clip = [];
         this.bounds = new Float32Array(6); //TODO: plan the bounds for light clustering.
     }
 
@@ -503,7 +504,12 @@ var Area = function(){
 
             var brush = new Brush();
             brush.parse(file, map);
-            this.brushes.push(brush);
+
+            if(brush.materialName == "textures/common/clip"){
+                this.clip.push(brush);
+            }else{
+                this.brushes.push(brush);
+            }
 
             bounds = brush.bounds;
             Vector3.min(new Vector3(bounds[0], bounds[1], bounds[2]), minBounds, minBounds);
@@ -569,6 +575,7 @@ var Brush = function(){
         this.indecies = null;
         this.bounds = new Float32Array(6); //TODO: plan the bounds for light clustering.
         this.material = null;
+        this.materialName = null;
     }
     Brush.prototype.draw = function(display){
         display.draw(this.vertecies, this.polygons, this.material)
@@ -585,6 +592,7 @@ var Brush = function(){
         this.vertecies = new Float32Array(vertCount * ReadableVertex.readOrder.length);
         this.indecies = new Uint16Array(indexCount);
         this.material = map.materials[materialName];
+        this.materialName = materialName;
 
         // Read Verticies
         for(var i = 0; i < vertCount; ++i){
