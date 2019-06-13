@@ -78,15 +78,13 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
 
     var mapArray = []; // Temp code to loop through the map
     Game.prototype.loop = function(deltaTime){
-        if(this.map != null){
-            if(this.map.isLoaded){
-                if(mapArray.length == 0){
-                    for(var name in this.map.areas){
-                        mapArray.push(this.map.areas[name]);
-                    }
-                }
+        var map = this.map;
+        if(map != null){
+            if(map.isLoaded){
+                mapArray.length = 0;
+                map.getAreas(map.camera, mapArray);
 
-                this.display.draw(mapArray, this.map.camera);
+                this.display.draw(mapArray, map.camera);
             }
         }
     }

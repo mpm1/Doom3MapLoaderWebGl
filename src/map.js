@@ -759,4 +759,32 @@ function Map(mapName, pakFile){
     Map.prototype.unload = function(){
 
     }
+
+    function getAreaByPoint(x, y, z){
+        // TODO: place areas into oct tree.
+        var areas = this.areas;
+        var bounds;
+        for(var key in areas){
+            if(areas.hasOwnProperty(key)){
+                bounds = areas[key].bounds;
+
+                if(!(x < bounds[0] || x > bounds[3] 
+                    || y < bounds[1] || y > bounds[4]
+                    || z < bounds[2] || z > bounds[5])){
+                        return areas[key];
+                    }
+            }
+        }
+
+        return null;
+    }
+
+    Map.prototype.getAreas = function(camera, outputList){
+        var position = camera.transform.position;
+        var area = getAreaByPoint.call(this, -position[0], -position[1], -position[2]);
+
+        if(area != null){
+            outputList.push(area);
+        }
+    }
 }

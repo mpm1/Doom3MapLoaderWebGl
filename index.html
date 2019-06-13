@@ -51,9 +51,8 @@
                     var mouse = controls.controls.Mouse;
                     if(mouse.magnitude > 0.0){
                         var up = map.camera.transform.invUp;
-                        var right = map.camera.transform.invRight;
 
-                        // TODO: rotate around fixed world index.
+                        // This is done to prevent rotation around the z axis.
                         map.camera.transform.rotate(mouse.magnitude * -mouse.normal[0], up[0], up[1], up[2]);
                         map.camera.transform.rotate(mouse.magnitude, -mouse.normal[1], 0, 0);
                     }
