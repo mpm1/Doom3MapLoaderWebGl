@@ -626,6 +626,40 @@ var Brush = function(){
     }
 }
 
+var Portal = function(){
+    this.points = [];
+    this.areaIds = new Uint16Array(2);
+    this.areas = [];
+}
+{
+    function readPoint(file){
+        file.next(); // Read the first bracket.
+
+        var point = new Vector3(
+            parseFloat(file.next()),
+            parseFloat(file.next()),
+            parseFloat(file.next())
+        );
+
+        file.next(); // read the end bracket.
+
+        return point;
+    }
+
+    Portal.prototype.parse = function(file){
+        var token;
+        var pointCount = parseInt(file.next());
+
+        // Get the connecting areas
+        this.areaIds[0] = parseInt(file.next());
+        this.areaIds[1] = parseInt(file.next());
+
+        for(var i = 0; i < pointCount; ++i){
+            this.points.push(readPoint(file));
+        }
+    }
+}
+
 function Map(mapName, pakFile){
     this.init(mapName, pakFile);
 }
@@ -667,6 +701,19 @@ function Map(mapName, pakFile){
     function loadMap(mapFile){
     }
 
+    function readPortals(procFile){
+        var areaNum = parseInt(procFile.next());
+        var portalNum = parseInt(procFile.next());
+
+        for(var i = 0; i < portalNum; ++i){
+            var portal = new Portal();
+            portal.parse(procFile);
+
+            this.portals.push(portal);
+        }
+
+        procFile.next(); // read the closing bracket.
+    }
 
     /** Loads the .proc file into memory and creates the needed brushes and shadow volumes. */
     function loadProcFile(procFile){
@@ -680,8 +727,13 @@ function Map(mapName, pakFile){
                 area.parse(procFile, this);
 
                 this.areas[area.name] = area;
+            }if(token == "interAreaPortals") {
+                procFile.next(); //Obtain the opening bracket.
+                readPortals.call(this, procFile);
             }
         }
+
+        // TODO: Connect portals to areas
     }
 
     Map.prototype.init = function(mapName, pakFile){
@@ -691,6 +743,7 @@ function Map(mapName, pakFile){
         this.materials = {};
         this.textures = {};
         this.areas = {};
+        this.portals = [];
         this.camera = new Camera();
 
         this.camera.setPerspective(80.0, 16.0 / 9.0, 0.1, 2000.0);
