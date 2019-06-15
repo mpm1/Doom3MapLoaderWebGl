@@ -489,12 +489,13 @@ var Area = function(){
         this.brushes = [];
         this.clip = [];
         this.bounds = new Float32Array(6); //TODO: plan the bounds for light clustering.
+        this.portals = [];
     }
 
     Area.prototype.parse = function(file, map){
         var minBounds = new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
         var maxBounds = new Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
-        this.name = file.next().replace("\"", "");
+        this.name = file.next().replace(/"/g, "");
         
         var brushCount = parseInt(file.next());
         var bounds;
@@ -733,7 +734,22 @@ function Map(mapName, pakFile){
             }
         }
 
-        // TODO: Connect portals to areas
+        // Add portals to the areas.
+        for(var i = 0; i < this.portals.length; ++i){
+            var portal = this.portals[i];
+
+            for(var aIndex = 0; aIndex < portal.areaIds.length; ++aIndex){
+                var aArea = this.areas["_area" + portal.areaIds[aIndex]];
+                portal.areas.push(aArea);
+                aArea.portals.push(portal);
+                
+                for(bIndex = aIndex + 1; bIndex < portal.areaIds.length; ++bIndex){
+                    var bArea = this.areas["_area" + portal.areaIds[bIndex]];
+                    portal.areas.push(bArea);
+                    bArea.portals.push(portal);
+                }
+            }
+        }
     }
 
     Map.prototype.init = function(mapName, pakFile){
@@ -832,12 +848,37 @@ function Map(mapName, pakFile){
         return null;
     }
 
+    function getChildAreas(area, camera, outputList){
+        var portals = area.portals;
+        var portal;
+        var newArea;
+
+        for(var i = 0; i < portals.length; ++i){
+            portal = portals[i];
+
+            //TODO: check if we can see the portal.
+
+            for(var aIndex = 0; aIndex < portal.areas.length; ++aIndex){
+                newArea = portal.areas[aIndex];
+
+                if(!outputList.includes(newArea)){
+                    // TODO: Add subareas
+                    outputList.push(newArea);
+                }
+            }
+        }
+    }
+
     Map.prototype.getAreas = function(camera, outputList){
         var position = camera.transform.position;
         var area = getAreaByPoint.call(this, -position[0], -position[1], -position[2]);
 
         if(area != null){
             outputList.push(area);
+
+            getChildAreas(area, camera, outputList);
         }
+
+
     }
 }

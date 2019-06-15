@@ -314,7 +314,7 @@ function Display(canvas){
 
                 if(boundsRenderer != null){
                     gl.disable(gl.DEPTH_TEST);
-                    boundsRenderer.draw(gl, brush.bounds, camera.transform.matrix, camera.projectionMatrix);
+                    boundsRenderer.draw(gl, brush.bounds, camera.transform.invMatrix, camera.projectionMatrix);
                     gl.useProgram(program);
                     gl.enable(gl.DEPTH_TEST);
                 }
