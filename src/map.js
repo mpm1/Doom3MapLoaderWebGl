@@ -646,11 +646,12 @@ var Portal = function(){
     function readPoint(file){
         file.next(); // Read the first bracket.
 
-        var point = new Vector3(
-            parseFloat(file.next()),
-            parseFloat(file.next()),
-            parseFloat(file.next())
-        );
+        // This order is used since we are using the y value as height.
+        var x = parseFloat(file.next());
+        var z = parseFloat(file.next());
+        var y = parseFloat(file.next());
+
+        var point = new Vector3(x, y, z);
 
         file.next(); // read the end bracket.
 
