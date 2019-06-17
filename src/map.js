@@ -184,6 +184,14 @@ var Camera = function(){
     Camera.prototype.init = function(){
         this.transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
         this.projectionMatrix = new Matrix4();
+
+        var mvpMatrix = new Matrix4();
+
+        Object.defineProperty(this, "mvpMatrix", {
+            get: function(){
+                return Matrix4.multiplyMatrix(this.projectionMatrix, this.transform.invMatrix, mvpMatrix);
+            }
+        });
     }
 
     Camera.createFrustrum = function(left, right, bottom, top, near, far, matrix){
@@ -629,8 +637,10 @@ var Brush = function(){
 
 var Portal = function(){
     this.points = [];
-    this.areaIds = new Uint16Array(2);
-    this.areas = [];
+    this.positiveId = -1;
+    this.negativeId = -1;
+    this.positive = null;
+    this.negative = null
 }
 {
     function readPoint(file){
@@ -652,8 +662,8 @@ var Portal = function(){
         var pointCount = parseInt(file.next());
 
         // Get the connecting areas
-        this.areaIds[0] = parseInt(file.next());
-        this.areaIds[1] = parseInt(file.next());
+        this.positiveId = parseInt(file.next());
+        this.negativeId = parseInt(file.next());
 
         for(var i = 0; i < pointCount; ++i){
             this.points.push(readPoint(file));
@@ -738,17 +748,14 @@ function Map(mapName, pakFile){
         for(var i = 0; i < this.portals.length; ++i){
             var portal = this.portals[i];
 
-            for(var aIndex = 0; aIndex < portal.areaIds.length; ++aIndex){
-                var aArea = this.areas["_area" + portal.areaIds[aIndex]];
-                portal.areas.push(aArea);
-                aArea.portals.push(portal);
-                
-                for(bIndex = aIndex + 1; bIndex < portal.areaIds.length; ++bIndex){
-                    var bArea = this.areas["_area" + portal.areaIds[bIndex]];
-                    portal.areas.push(bArea);
-                    bArea.portals.push(portal);
-                }
-            }
+            var posArea = this.areas["_area" + portal.positiveId];
+            var negArea = this.areas["_area" + portal.negativeId];
+
+            portal.positive = posArea;
+            posArea.portals.push(portal);
+
+            portal.negative = negArea;
+            negArea.portals.push(portal);
         }
     }
 
@@ -848,24 +855,101 @@ function Map(mapName, pakFile){
         return null;
     }
 
-    function getChildAreas(area, camera, outputList){
+    let portalVectorBuffer = new Vector3();
+    function getPortalArea(portal, area, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
+        // portal screen bounds
+        var left = 8e+26;
+        var top = 8e+26;
+        var right = -8e+26;
+        var bottom = -8e+26;
+
+        // Data holders
+        var point, absDiv, outArea;
+        var points = portal.points;
+        var x, y;
+
+        for(var i = 0; i < points.length; ++i){
+            point = points[i];
+            Matrix4.multiplyVector(mvpMatrix, point, portalVectorBuffer);
+
+            // Get the screen poistion for the points.
+            absDiv = Math.abs(portalVectorBuffer[3]);
+            x = portalVectorBuffer[0] / absDiv;
+            y = portalVectorBuffer[1] / absDiv;
+
+            if(x < left){
+                left = x;
+            }
+
+            if(x > right){
+                right = x;
+            }
+
+            if(y < top){
+                top = y;
+            }
+
+            if(y > bottom){
+                bottom = y;
+            }
+        }
+
+        // Check if our portal is outside the visible area of the screen.
+        if(left > frustrumRight || top > frustrumBottom || right < frustrumLeft || bottom < frustrumTop){
+            return;
+        }
+
+        // Create the new frustrum
+        if(left < frustrumLeft){
+            left = frustrumLeft;
+        }
+
+        if(top < frustrumTop){
+            top = frustrumTop;
+        }
+
+        if(right > frustrumRight){
+            right = frustrumRight;
+        }
+
+        if(bottom > frustrumBottom){
+            bottom = frustrumBottom;
+        }
+
+        // Go through the portal
+        if(area == portal.positive){
+            outArea = portal.negative;
+        }else{
+            outArea = portal.positive;
+        }
+
+        if(!hasArea(outArea, outputList)){
+            outputList.push(outArea);
+
+            // Find any child areas that need to be shown.
+            getChildAreas(outArea, mvpMatrix, left, top, right, bottom, outputList);
+        }
+    }
+
+    function hasArea(area, areaList){
+        // using a for loop since most browsers treat indexOf very slowly.
+        for(var index in areaList){
+            if(areaList[index] == area){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function getChildAreas(area, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
         var portals = area.portals;
         var portal;
-        var newArea;
 
         for(var i = 0; i < portals.length; ++i){
             portal = portals[i];
 
-            //TODO: check if we can see the portal.
-
-            for(var aIndex = 0; aIndex < portal.areas.length; ++aIndex){
-                newArea = portal.areas[aIndex];
-
-                if(!outputList.includes(newArea)){
-                    // TODO: Add subareas
-                    outputList.push(newArea);
-                }
-            }
+            getPortalArea(portal, area, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList);
         }
     }
 
@@ -876,9 +960,7 @@ function Map(mapName, pakFile){
         if(area != null){
             outputList.push(area);
 
-            getChildAreas(area, camera, outputList);
+            getChildAreas(area, camera.mvpMatrix, -1.0, -1.0, 1.0, 1.0, outputList);
         }
-
-
     }
 }
