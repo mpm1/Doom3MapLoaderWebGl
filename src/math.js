@@ -310,11 +310,6 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
         outVector[2] = matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14] * w;
         outVector[3] = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15] * w;
 
-        /*outVector[0] = matrix[0] * x + matrix[1] * y + matrix[2] * z + matrix[3] * w;
-        outVector[1] = matrix[4] * x + matrix[5] * y + matrix[6] * z + matrix[7] * w;
-        outVector[2] = matrix[8] * x + matrix[9] * y + matrix[10] * z + matrix[11] * w;
-        outVector[3] = matrix[12] * x + matrix[13] * y + matrix[14] * z + matrix[15] * w;*/
-
         return outVector;
     }
 

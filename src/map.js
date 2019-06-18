@@ -659,7 +659,6 @@ var Portal = function(){
     }
 
     Portal.prototype.parse = function(file){
-        var token;
         var pointCount = parseInt(file.next());
 
         // Get the connecting areas
@@ -669,6 +668,41 @@ var Portal = function(){
         for(var i = 0; i < pointCount; ++i){
             this.points.push(readPoint(file));
         }
+    }
+}
+
+function BSPTree() {
+    this.equation = new Vector3();
+    this.positive = null;
+    this.negative = null;
+}
+{
+    BSPTree.prototype.parse = function(file){
+        file.next(); // Opening bracket.
+
+        this.equation[0] = parseFloat(file.next());
+        this.equation[2] = parseFloat(file.next()); // Swap the z and y values.
+        this.equation[1] = parseFloat(file.next());
+        this.equation[3] = parseFloat(file.next());
+
+        file.next(); // Closing bracket.
+
+        this.positive = parseInt(file.next());
+        this.negative = parseInt(file.next());
+    }
+
+    BSPTree.prototype.findAreaByPoint = function(x, y, z){
+        var value = (this.equation[0] * x) + (this.equation[1] * y) + (this.equation[2] * z) + this.equation[3];
+        var result = value > 0 ? this.positive : this.negative;
+                
+        if(result == null){
+            // We are inside an object or outside of the map.
+            return null;
+        }else if(result.hasOwnProperty("brushes")){
+            return result;
+        }
+
+        return result.findAreaByPoint(x, y, z);
     }
 }
 
@@ -714,6 +748,7 @@ function Map(mapName, pakFile){
     }
 
     function readPortals(procFile){
+        procFile.next(); //Obtain the opening bracket.
         var areaNum = parseInt(procFile.next());
         var portalNum = parseInt(procFile.next());
 
@@ -727,9 +762,27 @@ function Map(mapName, pakFile){
         procFile.next(); // read the closing bracket.
     }
 
+    function readBSPTree(procFile){
+        procFile.next(); //Obtain the opening bracket.
+        var total = parseInt(procFile.next());
+        var nodeList = new Array(total);
+
+        for(var i = 0; i < total; ++i){
+            var node = new BSPTree();
+            node.parse(procFile);
+
+            nodeList[i] = node;
+        }
+
+        procFile.next(); // read the closing bracket.
+
+        return nodeList;
+    }
+
     /** Loads the .proc file into memory and creates the needed brushes and shadow volumes. */
     function loadProcFile(procFile){
         var procType = procFile.next();
+        var nodeList = null;
         var token;
 
         while((token = procFile.next()) != null){
@@ -739,9 +792,10 @@ function Map(mapName, pakFile){
                 area.parse(procFile, this);
 
                 this.areas[area.name] = area;
-            }if(token == "interAreaPortals") {
-                procFile.next(); //Obtain the opening bracket.
+            }else if(token == "interAreaPortals") {
                 readPortals.call(this, procFile);
+            }else if(token == "nodes") {
+                nodeList = readBSPTree.call(this, procFile);
             }
         }
 
@@ -758,6 +812,31 @@ function Map(mapName, pakFile){
             portal.negative = negArea;
             negArea.portals.push(portal);
         }
+
+        // Build the BSP tree.
+        if(nodeList != null && nodeList.length > 0){
+            this.bspTree = nodeList[0];
+
+            for(var i = 0; i < nodeList.length; ++i){
+                var node = nodeList[i];
+
+                if(node.positive < 0){
+                    node.positive = this.areas["_area" + (-1 - node.positive)];
+                }else if(node.positive > 0){
+                    node.positive = nodeList[node.positive];
+                }else {
+                    node.positive = null;
+                }
+
+                if(node.negative < 0){
+                    node.negative = this.areas["_area" + (-1 - node.negative)];
+                }else if(node.negative > 0){
+                    node.negative = nodeList[node.negative];
+                }else {
+                    node.negative = null;
+                }
+            }
+        }
     }
 
     Map.prototype.init = function(mapName, pakFile){
@@ -769,6 +848,7 @@ function Map(mapName, pakFile){
         this.areas = {};
         this.portals = [];
         this.camera = new Camera();
+        this.bspTree = null;
 
         this.camera.setPerspective(80.0, 16.0 / 9.0, 0.1, 2000.0);
     }
@@ -795,9 +875,10 @@ function Map(mapName, pakFile){
 
                     // Temp code to set the starting position.
                     var position = map.camera.transform.position;
-                    position[0] = -416;
-                    position[1] = -100;
-                    position[2] = -1288;
+                    // TODO: find the player start position.
+                    position[0] = -650.85;
+                    position[1] = -50.58;
+                    position[2] = -2069.76;
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));
@@ -956,7 +1037,7 @@ function Map(mapName, pakFile){
 
     Map.prototype.getAreas = function(camera, outputList){
         var position = camera.transform.position;
-        var area = getAreaByPoint.call(this, -position[0], -position[1], -position[2]);
+        var area = this.bspTree.findAreaByPoint(-position[0], -position[1], -position[2]);
 
         if(area != null){
             outputList.push(area);
