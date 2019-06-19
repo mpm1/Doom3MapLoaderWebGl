@@ -1082,6 +1082,13 @@ function Map(mapName, pakFile){
                 }
 
                 light.updateAreas(this);
+            }else if(entity.classname == "info_player_start"){
+                var vals = entity.origin.split(/\s+/g);
+                var position = this.camera.transform.position;
+
+                position[0] = -parseFloat(vals[0]);
+                position[1] = -parseFloat(vals[2]) - 80.0;
+                position[2] = -parseFloat(vals[1]);
             }
         }
     }
@@ -1126,13 +1133,6 @@ function Map(mapName, pakFile){
                 
                 pak.file("maps/" + map.name + ".map").async("string").then(function(text){
                     var entities = loadMap.call(map, new FileLexer(text));
-
-                    // Temp code to set the starting position.
-                    var position = map.camera.transform.position;
-                    // TODO: find the player start position.
-                    position[0] = -650.85;
-                    position[1] = -50.58;
-                    position[2] = -2069.76;
                     
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));

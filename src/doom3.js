@@ -11,7 +11,7 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
     this.console.addFunction("hidebounds", new ConsoleFunction("hidebounds", "Hides the map object bouundries", this.hideBounds, this));
 
     var _this = this;
-    this.loadPk4("./test/q3dm1.pk4").then(function(pak){ _this.loadMap("q3dm1"); });
+    this.loadPk4("./test/q3dm2.pk4").then(function(pak){ _this.loadMap("q3dm2"); });
 }
 {
     Game.prototype.showBounds = function(){
