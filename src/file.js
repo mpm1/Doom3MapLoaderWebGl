@@ -14,6 +14,8 @@ var FileLexer = function(file){
         "<<=",
         "...",
 
+        "\"",
+
         "(",
         ")",
         "{",
@@ -104,6 +106,33 @@ var FileLexer = function(file){
         };
 
         return null;
+    }
+
+    FileLexer.prototype.nextString = function(includeNewLine = false){
+        var token = this.next();
+        var result = null;
+
+        if(token != '"'){
+            return token;
+        }
+
+        while((token = this.next()) != null){
+            switch(token){
+                case '"':
+                    return result;
+                    break;
+
+                default:
+                    if(result === null){
+                        result = "" + token;
+                    }else{
+                        result += " " + token;
+                    }
+                    break;
+            }
+        }
+
+        return result;
     }
 
     FileLexer.prototype.current = function(){

@@ -91,37 +91,41 @@ var Transform = function(position, rotation, scale){
         var invUp = new Float32Array(invMatrix.buffer, 4 * 4, 3);
         var invBack = new Float32Array(invMatrix.buffer, 4 * 8, 3);
 
-        Object.defineProperty(this, "position", {
-            get: function(){
-                return position;
-            }
-        })
+        Object.defineProperties(this, 
+        {
+            "position": {
+                writeable: false,
+                get: function(){
+                    return position;
+                }
+            },
+            "backward": {
+                writeable: false,
+                get: function(){
+                    return back;
+                }
+            },
+            "right": {
+                writeable: false,
+                get: function(){
+                    return right;
+                }
+            },
+            "up": {
+                writeable: false,
+                get: function(){
+                    return up;
+                }
+            },
+            "scale": {
+                writeable: false,
+                get: function(){
+                    scale[0] = Vector3.length(right);
+                    scale[1] = Vector3.length(up);
+                    scale[2] = Vector3.length(back);
 
-        Object.defineProperty(this, "backward", {
-            get: function(){
-                return back;
-            }
-        });
-
-        Object.defineProperty(this, "right", {
-            get: function(){
-                return right;
-            }
-        });
-
-        Object.defineProperty(this, "up", {
-            get: function(){
-                return up;
-            }
-        });
-
-        Object.defineProperty(this, "scale", {
-            get: function(){
-                scale[0] = Vector3.length(right);
-                scale[1] = Vector3.length(up);
-                scale[2] = Vector3.length(back);
-
-                return scale;
+                    return scale;
+                }
             }
         });
 
@@ -133,27 +137,30 @@ var Transform = function(position, rotation, scale){
             }
         }
 
-        Object.defineProperty(this, "invMatrix", {
-            get: function(){
-                validateInverseMatrix.call(this);
+        Object.defineProperties(this, {
+            "invMatrix": {
+                writeable: false,
+                get: function(){
+                    validateInverseMatrix.call(this);
 
-                return invMatrix;
-            }
-        });
+                    return invMatrix;
+                }
+            },
+            "invUp": {
+                writeable: false,
+                get: function(){
+                    validateInverseMatrix.call(this);
 
-        Object.defineProperty(this, "invUp", {
-            get: function(){
-                validateInverseMatrix.call(this);
-
-                return invUp;
-            }
-        });
-
-        Object.defineProperty(this, "invRight", {
-            get: function(){
-                validateInverseMatrix.call(this);
-                
-                return invRight;
+                    return invUp;
+                }
+            },
+            "invRight": {
+                writeable: false,
+                get: function(){
+                    validateInverseMatrix.call(this);
+                    
+                    return invRight;
+                }
             }
         });
 
@@ -484,6 +491,107 @@ Actor.prototype.draw = function(display){
     display.popTransform();
 }
 
+var Light = function(){
+    this.init(Vector3.zero, Quaternion.zero, Vector3.one);
+}
+{
+    Light.prototype = Object.create(Actor.prototype);
+
+    Light.prototype.init = function(position, rotation, scale) {
+        Actor.prototype.init.call(this, position, rotation, scale);
+
+        this.classname = "";
+        this.name = "";
+        this.areas = [];
+        this.radius = new Vector3();
+        this.color = new Vector3();
+        this.shadows = true;
+        this.areas = [];
+        this.bounds = new Float32Array(6);
+
+        Object.defineProperties(this, {
+            "origin": {
+                set: function(value){
+                    var vals = value.split(/\s+/g);
+                    var position = this.transform.position;
+                    this.transform.stale = true;
+
+                    position[0] = parseFloat(vals[0]);
+                    position[1] = parseFloat(vals[2]);
+                    position[2] = parseFloat(vals[1]);
+
+                    this.recalculateBounds();
+                }
+            },
+            "light_radius": {
+                set: function(value){
+                    var vals = value.split(/\s+/g);
+                    this.radius[0] = parseFloat(vals[0]);
+                    this.radius[1] = parseFloat(vals[2]);
+                    this.radius[2] = parseFloat(vals[1]);
+
+                    this.recalculateBounds();
+                }
+            },
+            "_color": {
+                set: function(value){
+                    var vals = value.split(/\s+/g);
+                    for(var i = 0; i < 4 && i < vals.length; ++i){
+                        this.radius[i] = parseFloat(vals[i]);
+                    }
+                }
+            },
+            "noshadows": {
+                set: function(value){
+                    this.shadows = value != 1;
+                }
+            }
+        });
+    }
+
+    Light.prototype.recalculateBounds = function(){
+        var bounds = this.bounds;
+        var center = this.transform.position;
+        var radius = this.radius;
+
+        bounds[0] = center[0] - radius[0];
+        bounds[1] = center[1] - radius[1];
+        bounds[2] = center[2] - radius[2];
+
+        bounds[3] = center[0] + radius[0];
+        bounds[4] = center[1] + radius[1];
+        bounds[5] = center[2] + radius[2];
+
+        return bounds;
+    }
+
+    /**
+     * Updates which areas are affected by the light.
+     */
+    Light.prototype.updateAreas = function(map){
+        var current = this.areas;
+
+        // Find all areas the light affects
+        var areas = map.bspTree.findAreasInBounds(this.bounds, []);
+
+        // Remove any areas not in the list
+        for(var i = current.length - 1; i >= 0; --i){
+            if(areas.indexOf(current[i]) < 0){
+                current[i].removeLight(this);
+                current.splice(i, 1);
+            }
+        }
+
+        // Add any new areas
+        for(var i = 0; i < areas.length; ++i){
+            if(current.indexOf(areas[i]) < 0){
+                areas[i].addLight(this);
+                current.push(areas[i]);
+            }
+        }
+    }
+}
+
 var Area = function(){
     this.init(Vector3.zero, Quaternion.zero, Vector3.one);
 }
@@ -498,13 +606,13 @@ var Area = function(){
         this.clip = [];
         this.bounds = new Float32Array(6); //TODO: plan the bounds for light clustering.
         this.portals = [];
+        this.lights = {};
     }
 
     Area.prototype.parse = function(file, map){
         var minBounds = new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
         var maxBounds = new Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
-        this.name = file.next().replace(/"/g, "");
-        
+        this.name = file.nextString();
         var brushCount = parseInt(file.next());
         var bounds;
         
@@ -534,6 +642,14 @@ var Area = function(){
         bounds[5] = maxBounds[2];
 
         file.readUntil("}");
+    }
+
+    Area.prototype.addLight = function(light){
+        this.lights[light.name] = light;
+    }
+
+    Area.prototype.removeLight = function(light){
+        delete this.lights[light.name];
     }
 }
 
@@ -590,7 +706,7 @@ var Brush = function(){
         display.draw(this.vertecies, this.polygons, this.material)
     }
     Brush.prototype.parse = function(file, map){
-        var materialName = file.next().replace(/"/g, "");
+        var materialName = file.nextString();
         var vertCount = parseInt(file.next());
         var indexCount = parseInt(file.next());
         var minBounds = new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
@@ -704,6 +820,38 @@ function BSPTree() {
 
         return result.findAreaByPoint(x, y, z);
     }
+
+    function evaluateBoundsNode(node, bounds, outputList){
+        if(node == null){
+            return;
+        }else if(node.hasOwnProperty("brushes")){
+            if(outputList.indexOf(node) < 0){
+                outputList.push(node);
+            }
+        }else{
+            node.findAreasInBounds(bounds, outputList);
+        }
+    }
+
+    BSPTree.prototype.findAreasInBounds = function(bounds, outputList){
+        var x = this.equation[0];
+        var y = this.equation[1];
+        var z = this.equation[2];
+        var w = this.equation[3];
+
+        var minValue = (bounds[0] * x) + (bounds[1] * y) + (bounds[2] * z) + w;
+        var maxValue = (bounds[3] * x) + (bounds[4] * y) + (bounds[5] * z) + w;
+
+        if(maxValue >= 0){
+            evaluateBoundsNode(this.positive, bounds, outputList);
+        }
+
+        if(minValue < 0){
+            evaluateBoundsNode(this.negative, bounds, outputList);
+        }
+
+        return outputList;
+    }
 }
 
 function Map(mapName, pakFile){
@@ -739,12 +887,88 @@ function Map(mapName, pakFile){
         Console.current.writeLine(materialCount + " materials loaded.");
     }
 
+    function readEntityProperty(mapFile, entity){
+        var token;
+        var name = null;
+        var value = null;
+
+        while((token = mapFile.next()) != null){
+            if(token == '"'){
+                break;
+            }
+
+            if(name === null){
+                name = "" + token;
+            }else {
+                name += " " + token;
+            }
+        }
+
+        value = mapFile.nextString();
+
+        entity[name] = value;
+    }
+
+    /**
+     * Reads a single entity from a .mapfile
+     * 
+     * @param {FileLexer} mapFile 
+     */
+    function readEntity(mapFile){
+        var entity = {};
+        var brackets = 1;
+        var name = null;
+        var token;
+
+        while((token = mapFile.next()) != null){
+            switch(token){
+                case '}':
+                    --brackets;
+                    if(brackets <= 0){
+                        return entity;
+                    }
+                    break;
+                
+                case '{':
+                    ++brackets;
+                    break;
+
+                case '"':
+                    if(brackets == 1){
+                        readEntityProperty.call(this, mapFile, entity);
+                    }
+                    break;
+            }
+        }
+
+        return entity;
+    }
+
     /**
      * Loads the .map file into memory creating the needed areas and lights.
      * 
      * @param {FileLexer} mapFile 
      */
     function loadMap(mapFile){
+        var entities = [];
+        var token = mapFile.next();
+
+        if(token != "Version" || mapFile.next() != "2"){
+            Console.current.writeLine("Invalid map file.");
+            return entities;
+        }
+
+        while((token = mapFile.next()) != null){
+            if(token == '{'){
+                var entity = readEntity.call(this, mapFile);
+
+                if(entity.hasOwnProperty("classname")){
+                    entities.push(entity);
+                }
+            }
+        }
+
+        return entities;
     }
 
     function readPortals(procFile){
@@ -839,6 +1063,29 @@ function Map(mapName, pakFile){
         }
     }
 
+    /**
+     * Converts the entities into usable map objects.
+     * 
+     * @param {Array} entities 
+     */
+    function transformEntities(entities){
+        for(var i = 0; i < entities.length; ++i){
+            var entity = entities[i];
+
+            if(entity.classname == "light"){
+                var light = new Light();
+
+                for(var prop in entity){
+                    if(entity.hasOwnProperty(prop)){
+                        light[prop] = entity[prop];
+                    }
+                }
+
+                light.updateAreas(this);
+            }
+        }
+    }
+
     Map.prototype.init = function(mapName, pakFile){
         this.isLoaded = false;
         this.name = mapName;
@@ -849,6 +1096,13 @@ function Map(mapName, pakFile){
         this.portals = [];
         this.camera = new Camera();
         this.bspTree = null;
+        this.drawBuffer = {
+            opaqueModels: [],
+            transparentModels: [],
+            fullBrightModels: [],
+            lights: {},
+            areas: {}
+        }
 
         this.camera.setPerspective(80.0, 16.0 / 9.0, 0.1, 2000.0);
     }
@@ -871,7 +1125,7 @@ function Map(mapName, pakFile){
                 loadMaterials.call(map, new FileLexer(text));
                 
                 pak.file("maps/" + map.name + ".map").async("string").then(function(text){
-                    loadMap.call(map, new FileLexer(text));
+                    var entities = loadMap.call(map, new FileLexer(text));
 
                     // Temp code to set the starting position.
                     var position = map.camera.transform.position;
@@ -883,6 +1137,8 @@ function Map(mapName, pakFile){
                     pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
                         loadProcFile.call(map, new FileLexer(text));
                         map.isLoaded = true;
+
+                        transformEntities.call(map, entities);
 
                         resolve(map);
                     }, reject);
@@ -938,7 +1194,7 @@ function Map(mapName, pakFile){
     }
 
     let portalVectorBuffer = new Vector3();
-    function getPortalArea(portal, area, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
+    function getPortalArea(portal, area, drawBuffer, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
         // portal screen bounds
         var left = 8e+26;
         var top = 8e+26;
@@ -1005,44 +1261,77 @@ function Map(mapName, pakFile){
             outArea = portal.positive;
         }
 
-        if(!hasArea(outArea, outputList)){
-            outputList.push(outArea);
+        if(addAreaToDrawBuffer(outArea, drawBuffer, mvpMatrix)){
 
             // Find any child areas that need to be shown.
-            getChildAreas(outArea, mvpMatrix, left, top, right, bottom, outputList);
+            readChildAreas(outArea, drawBuffer, mvpMatrix, left, top, right, bottom);
         }
     }
 
-    function hasArea(area, areaList){
-        // using a for loop since most browsers treat indexOf very slowly.
-        for(var index in areaList){
-            if(areaList[index] == area){
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    function getChildAreas(area, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
+    function readChildAreas(area, drawBuffer, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom){
         var portals = area.portals;
         var portal;
 
         for(var i = 0; i < portals.length; ++i){
             portal = portals[i];
 
-            getPortalArea(portal, area, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList);
+            getPortalArea(portal, area, drawBuffer, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom);
         }
     }
 
-    Map.prototype.getAreas = function(camera, outputList){
+    function addAreaToDrawBuffer(area, drawBuffer, mvpMatrix){
+        if(!drawBuffer.areas.hasOwnProperty(area.name)){
+            drawBuffer.areas[area.name] = area;
+            var lights = area.lights;
+            
+            area.brushes.forEach(function(brush){
+                var material = brush.material;
+
+                if(material){
+                    if(material.translucent){
+                        drawBuffer.transparentModels.push(brush);
+                    }else{
+                        drawBuffer.opaqueModels.push(brush);
+
+                        for(var lightName in lights){
+                            var light = drawBuffer.lights[lightName];
+
+                            if(!light){
+                                light = {
+                                    light: lights[lightName],
+                                    models: []
+                                };
+
+                                drawBuffer.lights[lightName] = light;
+                            }
+
+                            //TODO: find if the brush is affected by the light
+                            light.models.push(brush);
+                        }
+                    }
+                }
+            });
+
+            return true;
+        }
+
+        return false; // we already have the area, so we did not add it to the buffer.
+    }
+
+    Map.prototype.calculateDrawBuffer = function(camera){
+        this.drawBuffer.opaqueModels.length = 0;
+        this.drawBuffer.transparentModels.length = 0;
+        this.drawBuffer.fullBrightModels.length = 0;
+        this.drawBuffer.lights = {}; //TODO: find a better way to do this.
+        this.drawBuffer.areas = {};
+
         var position = camera.transform.position;
         var area = this.bspTree.findAreaByPoint(-position[0], -position[1], -position[2]);
 
         if(area != null){
-            outputList.push(area);
+            addAreaToDrawBuffer(area, this.drawBuffer, camera.mvpMatrix);
 
-            getChildAreas(area, camera.mvpMatrix, -1.0, -1.0, 1.0, 1.0, outputList);
+            readChildAreas.call(this, area, this.drawBuffer, camera.mvpMatrix, -1.0, -1.0, 1.0, 1.0);
         }
     }
 }

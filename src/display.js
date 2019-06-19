@@ -269,7 +269,26 @@ function Display(canvas){
         this.resize(canvas.width, canvas.height);
     }
 
-    Display.prototype.draw = function(lightCluster, camera){
+    function drawModel(gl, program, model){
+        var vert = model.vertecies;
+        var index = model.indecies;
+
+        //Create the buffers if they do not exist.
+        if(!vert.glBuffer){
+            createVertexBuffer(gl, vert);
+            createIndexBuffer(gl, index);
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
+        gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.positionOffset);
+        gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.textureOffset);
+        gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, true, ReadableVertex.stride, ReadableVertex.normalOffset);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.glBuffer);
+        gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
+    }
+
+    Display.prototype.draw = function(drawBuffer, camera){
         var gl = this.gl;
         var program = this.shaders.test;
         var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
@@ -283,43 +302,34 @@ function Display(canvas){
 
         setShaderUniforms(gl, program, camera);
 
-        lightCluster.forEach(function(container, cIndex){
-            //TODO: For now we are rendering every area. We will eventually group this into light clusters
-            container.brushes.forEach(function(brush, bIndex){
-                var vert = brush.vertecies;
-                var index = brush.indecies;
-                var material = brush.material;
+        // Draw to the depth buffer
+        drawBuffer.opaqueModels.forEach(function(model, cIndex){
+            //TODO: For now we are just drawing the models to the screen. We will eventually limit this to each light.
+            var material = model.material;
 
-                if(material && material.map){
-                    var texture = material.map.getGlTexture(gl);
+            if(material && material.map){
+                var texture = material.map.getGlTexture(gl);
 
-                    gl.activeTexture(gl.TEXTURE0);
-                    gl.bindTexture(gl.TEXTURE_2D, texture);
-                }
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+            }
 
-                //For now we will dynamically create the buffers
-                if(!vert.glBuffer){
-                    createVertexBuffer(gl, vert);
-                    createIndexBuffer(gl, index);
-                }
+            drawModel(gl, program, model);
 
-                gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
-                gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.positionOffset);
-                gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.textureOffset);
-                gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, true, ReadableVertex.stride, ReadableVertex.normalOffset);
+            if(boundsRenderer != null){
+                gl.disable(gl.DEPTH_TEST);
+                boundsRenderer.draw(gl, brush.bounds, camera.transform.invMatrix, camera.projectionMatrix);
+                gl.useProgram(program);
+                gl.enable(gl.DEPTH_TEST);
+            }
+        });
 
-                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.glBuffer);
-                gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
-                //gl.drawElements(gl.LINES, index.length, gl.UNSIGNED_SHORT, 0);
+        // Draw for each light
 
-                if(boundsRenderer != null){
-                    gl.disable(gl.DEPTH_TEST);
-                    boundsRenderer.draw(gl, brush.bounds, camera.transform.invMatrix, camera.projectionMatrix);
-                    gl.useProgram(program);
-                    gl.enable(gl.DEPTH_TEST);
-                }
-            });
-        })
+        // Draw fully bright elements
+
+        // Draw transparent elements
+        
     }
     Display.prototype.resize = function(width, height){
         this.size[0] = width;
