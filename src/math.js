@@ -314,7 +314,6 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
     }
 
     Matrix4.multiplyMatrix = function(a, b, outMatrix){
-        // CHANGE SO WE CAN HAVE THE RESULT END UP IN EITHER A OR B
         if(!outMatrix){
             outMatrix = new Matrix4();
         }

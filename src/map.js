@@ -508,6 +508,7 @@ var Light = function(){
         this.shadows = true;
         this.areas = [];
         this.bounds = new Float32Array(6);
+        this.scissor = new Float32Array(4);
 
         Object.defineProperties(this, {
             "origin": {
@@ -1279,6 +1280,45 @@ function Map(mapName, pakFile){
         }
     }
 
+    var scissorRight = new Vector3();
+    var scissorUp = new Vector3();
+    function getScissorWindow(light, mvpMatrix, outBuffer){
+        var r = Math.max(light.radius[0], light.radius[1], light.radius[2]);
+        var center = light.transform.position;
+        var up = light.transform.up;
+        var right = light.transform.right;
+
+        scissorRight[0] = center[0] + (right[0] * r);  
+        scissorRight[1] = center[1] + (right[1] * r); 
+        scissorRight[2] = center[2] + (right[2] * r);  
+        scissorRight[3] = 1.0;  
+        
+        scissorUp[0] = center[0] + (up[0] * r);  
+        scissorUp[1] = center[1] + (up[1] * r); 
+        scissorUp[2] = center[2] + (up[2] * r);  
+        scissorUp[3] = 1.0; 
+
+        // Calculate the light sides
+        Matrix4.multiplyVector(mvpMatrix, scissorRight, scissorRight);
+        Matrix4.multiplyVector(mvpMatrix, scissorUp, scissorUp);
+
+        // TODO: Handle light behind the camera
+
+        // Convert to screen coordinates
+        scissorRight[0] = scissorRight[0] / scissorRight[3];
+        scissorRight[1] = scissorRight[1] / scissorRight[3];
+        scissorUp[0] = scissorUp[0] / scissorUp[3];
+        scissorUp[1] = scissorUp[1] / scissorUp[3];
+
+        // Set the screen coordiates
+        outBuffer[0] = scissorUp[0] - (scissorRight[0] - scissorUp[0]);
+        outBuffer[1] = scissorRight[1] - (scissorUp[1] - scissorRight[1]);
+        outBuffer[2] = scissorRight[0] - outBuffer[0];
+        outBuffer[3] = scissorUp[1] - outBuffer[1];
+
+        return outBuffer;
+    }
+
     function addAreaToDrawBuffer(area, drawBuffer, mvpMatrix){
         if(!drawBuffer.areas.hasOwnProperty(area.name)){
             drawBuffer.areas[area.name] = area;
@@ -1299,6 +1339,7 @@ function Map(mapName, pakFile){
                             if(!light){
                                 light = {
                                     light: lights[lightName],
+                                    scissor: getScissorWindow(lights[lightName], mvpMatrix, lights[lightName].scissor),
                                     models: []
                                 };
 

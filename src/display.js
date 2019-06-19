@@ -1,3 +1,24 @@
+var depthVertex = `#version 300 es
+in vec3 a_position;
+
+uniform mat4 worldTransform;
+uniform mat4 projectionTransform;
+
+void main(){
+    gl_Position = projectionTransform * worldTransform * vec4(a_position, 1.0);
+}
+`
+
+var depthFrag = `#version 300 es
+precision mediump float;
+
+out vec4 outColor;
+
+void main(){
+    outColor = vec4(0, 0, 0, 1);
+}
+`
+
 var testVertex = `#version 300 es
     in vec3 a_position;
     in vec2 a_textureCoord;
@@ -211,22 +232,29 @@ function Display(canvas){
         gl.attachShader(program, fragmentShader);
         gl.linkProgram(program);
 
+        program.setsTexture = false;
+        program.setsNormal = false;
+
         if(gl.getProgramParameter(program, gl.LINK_STATUS)){
             program.name = name;
 
             Object.keys(variableNames).forEach(function(key){
-                if(variableNames.hasOwnProperty(key)){
-                    var propName = variableNames[key];
+                var propName = variableNames[key];
 
-                    switch(propName.type){
-                        case "attribute":
-                            program[propName.name] = gl.getAttribLocation(program, propName.glName);
+                if(propName.name == "textureCoordAttribute"){
+                    program.setsTexture = true;
+                }else if(propName.name == "normalAttribute"){
+                    program.setsNormal = true;
+                }
+
+                switch(propName.type){
+                    case "attribute":
+                        program[propName.name] = gl.getAttribLocation(program, propName.glName);
+                        break;
+
+                    case "uniform":
+                            program[propName.name] = gl.getUniformLocation(program, propName.glName);
                             break;
-
-                        case "uniform":
-                                program[propName.name] = gl.getUniformLocation(program, propName.glName);
-                                break;
-                    }
                 }
             });
 
@@ -252,6 +280,11 @@ function Display(canvas){
         this.gl = gl;
 
         this.shaders = { 
+            "depth" : createShaderProgram(gl, "depth", depthVertex, depthFrag, [
+                { name: "positionAttribute", glName: "a_position", type: "attribute" },
+                { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
+                { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
+            ]),
             "test" : createShaderProgram(gl, "test", testVertex, testFragment, [
                 { name: "positionAttribute", glName: "a_position", type: "attribute" },
                 { name: "textureCoordAttribute", glName: "a_textureCoord", type: "attribute" },
@@ -281,8 +314,14 @@ function Display(canvas){
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
         gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.positionOffset);
-        gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.textureOffset);
-        gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, true, ReadableVertex.stride, ReadableVertex.normalOffset);
+        
+        if(program.setsTexture){
+            gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.textureOffset);
+        }
+
+        if(program.setsNormal){
+            gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, true, ReadableVertex.stride, ReadableVertex.normalOffset);
+        }
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.glBuffer);
         gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
@@ -290,45 +329,68 @@ function Display(canvas){
 
     Display.prototype.draw = function(drawBuffer, camera){
         var gl = this.gl;
-        var program = this.shaders.test;
+        var program, key, light;
         var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
+
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
+        // Draw to the depth buffer
+        program = this.shaders.depth;
+        gl.enableVertexAttribArray(program.positionAttribute);
+        setShaderUniforms(gl, program, camera);
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.GREATER);
+        gl.depthMask(true);
+
+        drawBuffer.opaqueModels.forEach(function(model, cIndex){
+            drawModel(gl, program, model);
+        });
+
+        // Draw for each light
+        program = this.shaders.test;
 
         gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
         gl.enableVertexAttribArray(program.normalAttribute);
         gl.enableVertexAttribArray(program.textureCoordAttribute);
 
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
         setShaderUniforms(gl, program, camera);
 
-        // Draw to the depth buffer
-        drawBuffer.opaqueModels.forEach(function(model, cIndex){
-            //TODO: For now we are just drawing the models to the screen. We will eventually limit this to each light.
-            var material = model.material;
+        gl.depthFunc(gl.GEQUAL);
+        gl.depthMask(false);
 
-            if(material && material.map){
-                var texture = material.map.getGlTexture(gl);
+        for(key in drawBuffer.lights){
+            light = drawBuffer.lights[key];
 
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-            }
+            // TODO: apply the scissor test.
 
-            drawModel(gl, program, model);
+            light.models.forEach(function(model){
+                var material = model.material;
 
-            if(boundsRenderer != null){
-                gl.disable(gl.DEPTH_TEST);
-                boundsRenderer.draw(gl, brush.bounds, camera.transform.invMatrix, camera.projectionMatrix);
-                gl.useProgram(program);
-                gl.enable(gl.DEPTH_TEST);
-            }
-        });
+                if(material && material.map){
+                    var texture = material.map.getGlTexture(gl);
 
-        // Draw for each light
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, texture);
+                }
+
+                drawModel(gl, program, model);
+            })
+        }
 
         // Draw fully bright elements
 
         // Draw transparent elements
+        gl.depthMask(true);
+
+        /*if(boundsRenderer != null){
+            gl.disable(gl.DEPTH_TEST);
+            boundsRenderer.draw(gl, brush.bounds, camera.transform.invMatrix, camera.projectionMatrix);
+            gl.useProgram(program);
+            gl.enable(gl.DEPTH_TEST);
+        }*/
         
     }
     Display.prototype.resize = function(width, height){
