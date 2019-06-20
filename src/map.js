@@ -191,6 +191,8 @@ var Camera = function(){
     Camera.prototype.init = function(){
         this.transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
         this.projectionMatrix = new Matrix4();
+        this.near = 1;
+        this.far = 100;
 
         var mvpMatrix = new Matrix4();
 
@@ -224,6 +226,9 @@ var Camera = function(){
         var bottom = -top;
         var right = top * aspectRatio;
         var left = -right;
+
+        this.near = near;
+        this.far = far;
 
         return Camera.createFrustrum(left, right, bottom, top, near, far, this.projectionMatrix);
     }
@@ -1195,7 +1200,7 @@ function Map(mapName, pakFile){
     }
 
     let portalVectorBuffer = new Vector3();
-    function getPortalArea(portal, area, drawBuffer, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
+    function getPortalArea(portal, area, drawBuffer, camera, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
         // portal screen bounds
         var left = 8e+26;
         var top = 8e+26;
@@ -1209,7 +1214,7 @@ function Map(mapName, pakFile){
 
         for(var i = 0; i < points.length; ++i){
             point = points[i];
-            Matrix4.multiplyVector(mvpMatrix, point, portalVectorBuffer);
+            Matrix4.multiplyVector(camera.mvpMatrix, point, portalVectorBuffer);
 
             // Get the screen poistion for the points.
             absDiv = Math.abs(portalVectorBuffer[3]);
@@ -1262,31 +1267,33 @@ function Map(mapName, pakFile){
             outArea = portal.positive;
         }
 
-        if(addAreaToDrawBuffer(outArea, drawBuffer, mvpMatrix)){
+        if(addAreaToDrawBuffer(outArea, drawBuffer, camera)){
 
             // Find any child areas that need to be shown.
-            readChildAreas(outArea, drawBuffer, mvpMatrix, left, top, right, bottom);
+            readChildAreas(outArea, drawBuffer, camera, left, top, right, bottom);
         }
     }
 
-    function readChildAreas(area, drawBuffer, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom){
+    function readChildAreas(area, drawBuffer, camera, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom){
         var portals = area.portals;
         var portal;
 
         for(var i = 0; i < portals.length; ++i){
             portal = portals[i];
 
-            getPortalArea(portal, area, drawBuffer, mvpMatrix, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom);
+            getPortalArea(portal, area, drawBuffer, camera, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom);
         }
     }
 
     var scissorRight = new Vector3();
     var scissorUp = new Vector3();
-    function getScissorWindow(light, mvpMatrix, outBuffer){
+    function getScissorWindow(light, camera, outBuffer){
         var r = Math.max(light.radius[0], light.radius[1], light.radius[2]);
         var center = light.transform.position;
-        var up = light.transform.up;
-        var right = light.transform.right;
+        var up = camera.transform.up;
+        var right = camera.transform.right;
+        var mvMatrix = camera.transform.matrix;
+        var pMatrix = camera.projectionMatrix;
 
         scissorRight[0] = center[0] + (right[0] * r);  
         scissorRight[1] = center[1] + (right[1] * r); 
@@ -1299,10 +1306,16 @@ function Map(mapName, pakFile){
         scissorUp[3] = 1.0; 
 
         // Calculate the light sides
-        Matrix4.multiplyVector(mvpMatrix, scissorRight, scissorRight);
-        Matrix4.multiplyVector(mvpMatrix, scissorUp, scissorUp);
+        Matrix4.multiplyVector(mvMatrix, scissorRight, scissorRight);
+        Matrix4.multiplyVector(mvMatrix, scissorUp, scissorUp);
 
-        // TODO: Handle light behind the camera
+        // Handle light behind the camera
+        scissorRight[2] = Math.min(scissorRight[2], -camera.near);
+        scissorUp[2] = Math.min(scissorUp[2], -camera.near);
+
+        // Project the points
+        Matrix4.multiplyVector(pMatrix, scissorRight, scissorRight);
+        Matrix4.multiplyVector(pMatrix, scissorUp, scissorUp);
 
         // Convert to screen coordinates
         scissorRight[0] = scissorRight[0] / scissorRight[3];
@@ -1319,7 +1332,7 @@ function Map(mapName, pakFile){
         return outBuffer;
     }
 
-    function addAreaToDrawBuffer(area, drawBuffer, mvpMatrix){
+    function addAreaToDrawBuffer(area, drawBuffer, camera){
         if(!drawBuffer.areas.hasOwnProperty(area.name)){
             drawBuffer.areas[area.name] = area;
             var lights = area.lights;
@@ -1339,7 +1352,7 @@ function Map(mapName, pakFile){
                             if(!light){
                                 light = {
                                     light: lights[lightName],
-                                    scissor: getScissorWindow(lights[lightName], mvpMatrix, lights[lightName].scissor),
+                                    scissor: getScissorWindow(lights[lightName], camera, lights[lightName].scissor),
                                     models: []
                                 };
 
@@ -1370,9 +1383,9 @@ function Map(mapName, pakFile){
         var area = this.bspTree.findAreaByPoint(-position[0], -position[1], -position[2]);
 
         if(area != null){
-            addAreaToDrawBuffer(area, this.drawBuffer, camera.mvpMatrix);
+            addAreaToDrawBuffer(area, this.drawBuffer, camera);
 
-            readChildAreas.call(this, area, this.drawBuffer, camera.mvpMatrix, -1.0, -1.0, 1.0, 1.0);
+            readChildAreas.call(this, area, this.drawBuffer, camera, -1.0, -1.0, 1.0, 1.0);
         }
     }
 }

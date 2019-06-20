@@ -19,7 +19,7 @@ void main(){
 }
 `
 
-var testVertex = `#version 300 es
+var lightVertex = `#version 300 es
     in vec3 a_position;
     in vec2 a_textureCoord;
     in vec3 a_normal;
@@ -27,40 +27,47 @@ var testVertex = `#version 300 es
     uniform mat4 worldTransform;
     uniform mat4 projectionTransform;
 
-    out vec4 v_transformedPosition;
-    out vec4 v_position;
+    out vec3 v_position;
     out vec2 v_textureCoord;
     out vec3 v_normal;
 
     void main(){
-        v_position = worldTransform * vec4(a_position, 1.0);
+        v_position = a_position;
         v_textureCoord = a_textureCoord;
         v_normal = normalize(a_normal);
 
-        v_transformedPosition = projectionTransform * v_position;
-        gl_Position = v_transformedPosition;
+        gl_Position = projectionTransform * worldTransform * vec4(a_position, 1.0);
     }
 `
 
-var testFragment = `#version 300 es
+var lightFragment = `#version 300 es
     precision mediump float;
 
-    in vec4 v_transformedPosition;
-    in vec4 v_position;
+    struct Light {
+        vec3 center;
+        vec3 radius;
+        vec3 color;
+        int shadows;
+    };
+
+    in vec3 v_position;
     in vec2 v_textureCoord;
     in vec3 v_normal;
 
+    uniform Light uLight;
     uniform sampler2D uMap;
 
     out vec4 outColor;
 
     void main(){
         vec3 n = normalize(v_normal);
-        float nDotL = dot(n, normalize(vec3(-1, 1, 1)));
+        vec3 lightVec = (uLight.center - v_position.xyz) / uLight.radius;
+        float nDotL = dot(n, normalize(lightVec));
 
         outColor = texture(uMap, v_textureCoord);
         outColor.a = 1.0;
-        outColor.rgb *= pow(max(0.5, nDotL), 2.0);
+        //outColor.rgb *= 1.0 - length(lightVec);
+        outColor.r = 1.0;
     }
 `
 
@@ -138,7 +145,7 @@ var BoundsTester = function(gl, createShaderProgramFunction){
 
             { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
             { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
-            { name: "colorUniform", glName: "uColor", type: "uniform" }
+            { name: "colorUniform", glName: "uColor", type: "uniform" },
         ]);
     }
 
@@ -269,10 +276,17 @@ function Display(canvas){
         gl.deleteProgram(program);
     }
 
-    function setShaderUniforms(gl, program, camera){
+    function setShaderUniforms(gl, program, camera, light){
         gl.uniformMatrix4fv(program.modelMatrixUniform, false, camera.transform.invMatrix);
         gl.uniformMatrix4fv(program.viewMatrixUniform, false, camera.projectionMatrix);
         gl.uniform1i(program.mapUniform, 0);
+
+        if(light){
+            gl.uniform3fv(program.lightCenter, light.center);
+            gl.uniform3fv(program.lightRadius, light.radius);
+            gl.uniform3fv(program.lightColor, light.color);
+            gl.uniform1i(program.lightShadow, light.shadows ? 1 : 0);
+        }
     }
 
     Display.prototype.init = function(canvas){
@@ -287,14 +301,18 @@ function Display(canvas){
                 { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
                 { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
             ]),
-            "test" : createShaderProgram(gl, "test", testVertex, testFragment, [
+            "light" : createShaderProgram(gl, "light", lightVertex, lightFragment, [
                 { name: "positionAttribute", glName: "a_position", type: "attribute" },
                 { name: "textureCoordAttribute", glName: "a_textureCoord", type: "attribute" },
                 { name: "normalAttribute", glName: "a_normal", type: "attribute" },
 
                 { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
                 { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
-                { name: "mapUniform", glName: "uMap", type: "uniform" }
+                { name: "mapUniform", glName: "uMap", type: "uniform" },
+                { name: "lightCenter", glName: "uLight.center", type: "uniform" },
+                { name: "lightRadius", glName: "uLight.radius", type: "uniform" },
+                { name: "lightColor", glName: "uLight.color", type: "uniform" },
+                { name: "lightShadow", glName: "uLight.shadows", type: "uniform" },
             ]) 
         };
 
@@ -357,14 +375,14 @@ function Display(canvas){
         });
 
         // Draw for each light
-        program = this.shaders.test;
+        program = this.shaders.light;
 
         gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
         gl.enableVertexAttribArray(program.normalAttribute);
         gl.enableVertexAttribArray(program.textureCoordAttribute);
 
-        setShaderUniforms(gl, program, camera);
+        setShaderUniforms(gl, program, camera, light);
 
         gl.depthFunc(gl.LEQUAL);
         gl.depthMask(false);
