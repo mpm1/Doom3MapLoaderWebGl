@@ -333,6 +333,7 @@ function Display(canvas){
         var gl = this.gl;
         var program, key, light;
         var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
+        var screenSize = this.size;
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -368,12 +369,20 @@ function Display(canvas){
         gl.depthFunc(gl.LEQUAL);
         gl.depthMask(false);
 
-        //gl.enable(gl.BLEND);
-        //gl.blendFunc(gl.ONE, gl.ONE);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+
+        gl.enable(gl.SCISSOR_TEST);
         gl.enable(gl.POLYGON_OFFSET_FILL);
 
         for(key in drawBuffer.lights){
             light = drawBuffer.lights[key];
+            gl.scissor(
+                light.scissor[0] * screenSize[0],
+                light.scissor[1] * screenSize[1],
+                light.scissor[2] * screenSize[0],
+                light.scissor[3] * screenSize[1]
+            )
 
             // TODO: apply the scissor test.
 
@@ -390,6 +399,8 @@ function Display(canvas){
                 drawModel(gl, program, model);
             })
         }
+
+        gl.disable(gl.SCISSOR_TEST);
 
         // Draw fully bright elements
 
