@@ -202,6 +202,8 @@ function Display(canvas){
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
 
+        gl.polygonOffset(-1.0, -1.0);
+
         return gl;
     }
 
@@ -337,12 +339,17 @@ function Display(canvas){
 
         // Draw to the depth buffer
         program = this.shaders.depth;
+
+        gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
         setShaderUniforms(gl, program, camera);
 
         gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.GREATER);
+        gl.depthFunc(gl.LESS);
         gl.depthMask(true);
+
+        gl.disable(gl.BLEND);
+        gl.disable(gl.POLYGON_OFFSET_FILL);
 
         drawBuffer.opaqueModels.forEach(function(model, cIndex){
             drawModel(gl, program, model);
@@ -358,8 +365,12 @@ function Display(canvas){
 
         setShaderUniforms(gl, program, camera);
 
-        gl.depthFunc(gl.GEQUAL);
+        gl.depthFunc(gl.LEQUAL);
         gl.depthMask(false);
+
+        //gl.enable(gl.BLEND);
+        //gl.blendFunc(gl.ONE, gl.ONE);
+        gl.enable(gl.POLYGON_OFFSET_FILL);
 
         for(key in drawBuffer.lights){
             light = drawBuffer.lights[key];
