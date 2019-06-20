@@ -45,8 +45,8 @@ var lightFragment = `#version 300 es
 
     struct Light {
         vec3 center;
-        vec3 radius;
-        vec3 color;
+        vec4 radius;
+        vec4 color;
         int shadows;
     };
 
@@ -61,13 +61,14 @@ var lightFragment = `#version 300 es
 
     void main(){
         vec3 n = normalize(v_normal);
-        vec3 lightVec = (uLight.center - v_position.xyz) / uLight.radius;
+        vec3 lightVec = (uLight.center.xyz - v_position.xyz) / uLight.radius.xyz;
         float nDotL = dot(n, normalize(lightVec));
 
         outColor = texture(uMap, v_textureCoord);
+        outColor.rgb *= uLight.color.rgb;
         outColor.a = 1.0;
+
         //outColor.rgb *= 1.0 - length(lightVec);
-        outColor.r = 1.0;
     }
 `
 
@@ -280,13 +281,6 @@ function Display(canvas){
         gl.uniformMatrix4fv(program.modelMatrixUniform, false, camera.transform.invMatrix);
         gl.uniformMatrix4fv(program.viewMatrixUniform, false, camera.projectionMatrix);
         gl.uniform1i(program.mapUniform, 0);
-
-        if(light){
-            gl.uniform3fv(program.lightCenter, light.center);
-            gl.uniform3fv(program.lightRadius, light.radius);
-            gl.uniform3fv(program.lightColor, light.color);
-            gl.uniform1i(program.lightShadow, light.shadows ? 1 : 0);
-        }
     }
 
     Display.prototype.init = function(canvas){
@@ -382,7 +376,7 @@ function Display(canvas){
         gl.enableVertexAttribArray(program.normalAttribute);
         gl.enableVertexAttribArray(program.textureCoordAttribute);
 
-        setShaderUniforms(gl, program, camera, light);
+        setShaderUniforms(gl, program, camera);
 
         gl.depthFunc(gl.LEQUAL);
         gl.depthMask(false);
@@ -400,7 +394,12 @@ function Display(canvas){
                 light.scissor[1] * screenSize[1],
                 light.scissor[2] * screenSize[0],
                 light.scissor[3] * screenSize[1]
-            )
+            );
+
+            gl.uniform3fv(program.lightCenter, light.light.transform.position);
+            gl.uniform4fv(program.lightRadius, light.light.radius);
+            gl.uniform4fv(program.lightColor, light.light.color);
+            gl.uniform1i(program.lightShadow, light.light.shadows ? 1 : 0);
 
             // TODO: apply the scissor test.
 
