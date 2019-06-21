@@ -1,11 +1,11 @@
 
-// TODO: Convert to GL blend modes
+// Blend modes using webgl values
 const BLEND_MODES = {
     "gl_zero" : 0,
     "gl_one" : 1,
-    "gl_src_alpha" : 2,
-    "gl_one_minus_src_alpha" : 3,
-    "gl_dst_color" : 4
+    "gl_src_alpha" : 770,
+    "gl_one_minus_src_alpha" : 771,
+    "gl_dst_color" : 774
 }
 
 
@@ -321,7 +321,10 @@ var Material = function(){
 
     function createColorMaskFunction(mask){
         return function(file){
-            this.mask = this.mask & mask;
+            this.maskRed = mask & 0xFF000000 !== 0;
+            this.maskBlue = mask & 0x00FF0000 !== 0;
+            this.maskGreen = mask & 0x0000FF00 !== 0;
+            this.maskAlpha = mask & 0x000000FF !== 0;
         }
     }
 
@@ -379,11 +382,14 @@ var Material = function(){
         this.editorImage = null;
         this.blend = {
             customMode: null,
-            src: BLEND_MODES["gl_zero"],
+            src: BLEND_MODES["gl_one"],
             dst: BLEND_MODES["gl_one"]
         }
         this.map = null;
-        this.colorMask = 0xFFFFFFFF;
+        this.maskRed = true;
+        this.maskGreen = true;
+        this.maskBlue = true;
+        this.maskAlpha = true;
         this.alphaTest = 0.0;
         this.translucent = false;
         this.solid = true;

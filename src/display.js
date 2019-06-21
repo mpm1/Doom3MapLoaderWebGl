@@ -43,6 +43,10 @@ var lightVertex = `#version 300 es
 var lightFragment = `#version 300 es
     precision mediump float;
 
+    struct Material {
+        sampler2D map;
+    };
+
     struct Light {
         vec3 center;
         vec4 radius;
@@ -55,7 +59,7 @@ var lightFragment = `#version 300 es
     in vec3 v_normal;
 
     uniform Light uLight;
-    uniform sampler2D uMap;
+    uniform Material uMaterial;
 
     out vec4 outColor;
 
@@ -65,10 +69,9 @@ var lightFragment = `#version 300 es
         float nDotL = clamp(dot(n, normalize(lightVec)), 0.0, 1.0);
         float power = 1.0 - clamp(length(lightVec / uLight.radius.xyz), 0.0, 1.0);
 
-        outColor = texture(uMap, v_textureCoord);
+        outColor = texture(uMaterial.map, v_textureCoord);
         outColor.rgb *= uLight.color.rgb;
         outColor.rgb *= pow(power, 1.1);
-        outColor.a = 1.0;
     }
 `
 
@@ -266,6 +269,10 @@ function Display(canvas){
                             program[propName.name] = gl.getUniformLocation(program, propName.glName);
                             break;
                 }
+
+                if(propName.name == "materialMap"){
+                    gl.uniform1i(program["materialMap"], 0);
+                }
             });
 
             Console.current.writeLine("Shader loaded successfully.");
@@ -302,11 +309,13 @@ function Display(canvas){
 
                 { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
                 { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
-                { name: "mapUniform", glName: "uMap", type: "uniform" },
+
                 { name: "lightCenter", glName: "uLight.center", type: "uniform" },
                 { name: "lightRadius", glName: "uLight.radius", type: "uniform" },
                 { name: "lightColor", glName: "uLight.color", type: "uniform" },
                 { name: "lightShadow", glName: "uLight.shadows", type: "uniform" },
+
+                { name: "materialMap", glName: "uMaterial.map", type: "uniform" },
             ]) 
         };
 
@@ -359,6 +368,24 @@ function Display(canvas){
         gl.depthMask(false);
     }
 
+    function drawMaterialStage(gl, model, stage){
+        if(!stage.map){
+            return;
+        }
+
+        // Set the blend function
+        gl.blendFunc(stage.blend.src, stage.blend.dst);
+
+        // Set the color mask
+        gl.colorMask(stage.maskRed, stage.maskGreen, stage.maskBlue, stage.maskAlpha);
+
+        // Set the textures
+        var texture = stage.map.getGlTexture(gl);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+    }
+
     function drawLights(gl, drawBuffer, camera){
         var program = this.shaders.light;
         var screenSize = this.size;
@@ -374,7 +401,6 @@ function Display(canvas){
         gl.depthFunc(gl.LEQUAL);
 
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE);
 
         gl.enable(gl.SCISSOR_TEST);
         gl.enable(gl.POLYGON_OFFSET_FILL);
@@ -399,11 +425,17 @@ function Display(canvas){
             light.models.forEach(function(model){
                 var material = model.material;
 
-                if(material && material.map){
-                    var texture = material.map.getGlTexture(gl);
+                // Set any base material values
 
-                    gl.activeTexture(gl.TEXTURE0);
-                    gl.bindTexture(gl.TEXTURE_2D, texture);
+                // Draw each stage
+                if(material){
+                    if(material.stages.length > 0){
+                        material.stages.forEach(function(stage){
+                            drawMaterialStage(gl, model, stage);
+                        });
+                    }else{
+                        drawMaterialStage(gl, model, material);
+                    }
                 }
 
                 drawModel(gl, program, model);
