@@ -341,17 +341,8 @@ function Display(canvas){
         gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
     }
 
-    Display.prototype.draw = function(drawBuffer, camera){
-        var gl = this.gl;
-        var program, key, light;
-        var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
-        var screenSize = this.size;
-
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-
-        // Draw to the depth buffer
-        program = this.shaders.depth;
+    function drawDepth(gl, drawBuffer, camera){
+        var program = this.shaders.depth;
 
         gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
@@ -361,15 +352,17 @@ function Display(canvas){
         gl.depthFunc(gl.LESS);
         gl.depthMask(true);
 
-        gl.disable(gl.BLEND);
-        gl.disable(gl.POLYGON_OFFSET_FILL);
-
         drawBuffer.opaqueModels.forEach(function(model, cIndex){
             drawModel(gl, program, model);
         });
 
-        // Draw for each light
-        program = this.shaders.light;
+        gl.depthMask(false);
+    }
+
+    function drawLights(gl, drawBuffer, camera){
+        var program = this.shaders.light;
+        var screenSize = this.size;
+        var key, light;
 
         gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
@@ -379,7 +372,6 @@ function Display(canvas){
         setShaderUniforms(gl, program, camera);
 
         gl.depthFunc(gl.LEQUAL);
-        gl.depthMask(false);
 
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
@@ -389,6 +381,8 @@ function Display(canvas){
 
         for(key in drawBuffer.lights){
             light = drawBuffer.lights[key];
+
+            // Set the light viewing information
             gl.scissor(
                 light.scissor[0] * screenSize[0],
                 light.scissor[1] * screenSize[1],
@@ -396,12 +390,11 @@ function Display(canvas){
                 light.scissor[3] * screenSize[1]
             );
 
+            // Set the light information
             gl.uniform3fv(program.lightCenter, light.light.transform.position);
             gl.uniform4fv(program.lightRadius, light.light.radius);
             gl.uniform4fv(program.lightColor, light.light.color);
             gl.uniform1i(program.lightShadow, light.light.shadows ? 1 : 0);
-
-            // TODO: apply the scissor test.
 
             light.models.forEach(function(model){
                 var material = model.material;
@@ -415,13 +408,28 @@ function Display(canvas){
 
                 drawModel(gl, program, model);
             })
-        }
+        };
 
         gl.disableVertexAttribArray(program.normalAttribute);
         gl.disableVertexAttribArray(program.textureCoordAttribute);
-        
+
         gl.disable(gl.SCISSOR_TEST);
         gl.disable(gl.POLYGON_OFFSET_FILL);
+        gl.disable(gl.BLEND);
+    }
+
+    Display.prototype.draw = function(drawBuffer, camera){
+        var gl = this.gl;
+        var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
+
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
+        // Draw to the depth buffer
+        drawDepth.call(this, gl, drawBuffer, camera);
+
+        // Draw for each light
+        drawLights.call(this, gl, drawBuffer, camera);
 
         // Draw fully bright elements
 
