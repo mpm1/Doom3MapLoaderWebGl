@@ -61,14 +61,14 @@ var lightFragment = `#version 300 es
 
     void main(){
         vec3 n = normalize(v_normal);
-        vec3 lightVec = (uLight.center.xyz - v_position.xyz) / uLight.radius.xyz;
-        float nDotL = dot(n, normalize(lightVec));
+        vec3 lightVec = uLight.center.xyz - v_position.xyz;
+        float nDotL = clamp(dot(n, normalize(lightVec)), 0.0, 1.0);
+        float power = 1.0 - clamp(length(lightVec / uLight.radius.xyz), 0.0, 1.0);
 
         outColor = texture(uMap, v_textureCoord);
         outColor.rgb *= uLight.color.rgb;
+        outColor.rgb *= pow(power, 1.1);
         outColor.a = 1.0;
-
-        //outColor.rgb *= 1.0 - length(lightVec);
     }
 `
 

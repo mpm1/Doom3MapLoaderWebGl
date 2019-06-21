@@ -509,7 +509,7 @@ var Light = function(){
         this.name = "";
         this.areas = [];
         this.radius = new Vector3();
-        this.color = new Vector3();
+        this.color = new Vector3(1, 1, 1);
         this.shadows = true;
         this.areas = [];
         this.bounds = new Float32Array(6);
@@ -543,7 +543,7 @@ var Light = function(){
                 set: function(value){
                     var vals = value.split(/\s+/g);
                     for(var i = 0; i < 4 && i < vals.length; ++i){
-                        this.radius[i] = parseFloat(vals[i]);
+                        this.color[i] = parseFloat(vals[i]);
                     }
                 }
             },
@@ -1295,14 +1295,14 @@ function Map(mapName, pakFile){
         var mvMatrix = camera.transform.matrix;
         var pMatrix = camera.projectionMatrix;
 
-        scissorRight[0] = center[0] + (right[0] * r);  
-        scissorRight[1] = center[1] + (right[1] * r); 
-        scissorRight[2] = center[2] + (right[2] * r);  
+        scissorRight[0] = center[0] - (right[0] * r);  
+        scissorRight[1] = center[1] - (right[1] * r); 
+        scissorRight[2] = center[2] - (right[2] * r);  
         scissorRight[3] = 1.0;  
         
-        scissorUp[0] = center[0] + (up[0] * r);  
-        scissorUp[1] = center[1] + (up[1] * r); 
-        scissorUp[2] = center[2] + (up[2] * r);  
+        scissorUp[0] = center[0] - (up[0] * r);  
+        scissorUp[1] = center[1] - (up[1] * r); 
+        scissorUp[2] = center[2] - (up[2] * r);  
         scissorUp[3] = 1.0; 
 
         // Calculate the light sides
