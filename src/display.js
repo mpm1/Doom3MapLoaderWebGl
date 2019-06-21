@@ -417,7 +417,11 @@ function Display(canvas){
             })
         }
 
+        gl.disableVertexAttribArray(program.normalAttribute);
+        gl.disableVertexAttribArray(program.textureCoordAttribute);
+        
         gl.disable(gl.SCISSOR_TEST);
+        gl.disable(gl.POLYGON_OFFSET_FILL);
 
         // Draw fully bright elements
 

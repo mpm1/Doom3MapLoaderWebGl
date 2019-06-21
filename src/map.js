@@ -1292,17 +1292,17 @@ function Map(mapName, pakFile){
         var center = light.transform.position;
         var up = camera.transform.up;
         var right = camera.transform.right;
-        var mvMatrix = camera.transform.matrix;
+        var mvMatrix = camera.transform.invMatrix;
         var pMatrix = camera.projectionMatrix;
 
-        scissorRight[0] = center[0] - (right[0] * r);  
-        scissorRight[1] = center[1] - (right[1] * r); 
-        scissorRight[2] = center[2] - (right[2] * r);  
+        scissorRight[0] = center[0] + (right[0] * r);  
+        scissorRight[1] = center[1] + (right[1] * r); 
+        scissorRight[2] = center[2] + (right[2] * r);  
         scissorRight[3] = 1.0;  
         
-        scissorUp[0] = center[0] - (up[0] * r);  
-        scissorUp[1] = center[1] - (up[1] * r); 
-        scissorUp[2] = center[2] - (up[2] * r);  
+        scissorUp[0] = center[0] + (up[0] * r);  
+        scissorUp[1] = center[1] + (up[1] * r); 
+        scissorUp[2] = center[2] + (up[2] * r);  
         scissorUp[3] = 1.0; 
 
         // Calculate the light sides
@@ -1328,6 +1328,15 @@ function Map(mapName, pakFile){
         outBuffer[1] = scissorRight[1] - (scissorUp[1] - scissorRight[1]);
         outBuffer[2] = scissorRight[0] - outBuffer[0];
         outBuffer[3] = scissorUp[1] - outBuffer[1];
+
+        // Check to see if the light is even visible
+        if (outBuffer[2] <= 0.0 || outBuffer[3] <= 0.0) {
+            return null
+        }
+
+        // Set to 0, 1 space screen coordinates
+        outBuffer[0] = (outBuffer[0] + 1.0) * 0.5;
+        outBuffer[1] = (outBuffer[1] + 1.0) * 0.5;
 
         return outBuffer;
     }
@@ -1355,6 +1364,10 @@ function Map(mapName, pakFile){
                                     scissor: getScissorWindow(lights[lightName], camera, lights[lightName].scissor),
                                     models: []
                                 };
+
+                                if(light.scissor == null){
+                                    break;
+                                }
 
                                 drawBuffer.lights[lightName] = light;
                             }
