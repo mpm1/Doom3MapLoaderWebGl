@@ -1205,8 +1205,21 @@ function Map(mapName, pakFile){
         return null;
     }
 
+    let portalMaxBuffer = new Vector3();
+    let portalMinBuffer = new Vector3();
     let portalVectorBuffer = new Vector3();
     function getPortalArea(portal, area, drawBuffer, camera, frustrumLeft, frustrumTop, frustrumRight, frustrumBottom, outputList){
+        // Set the initial bounds
+        portalMaxBuffer[0] = -8e+26;
+        portalMaxBuffer[1] = -8e+26;
+        portalMaxBuffer[2] = -8e+26;
+        portalMaxBuffer[3] = 1.0;
+
+        portalMinBuffer[0] = 8e+26;
+        portalMinBuffer[1] = 8e+26;
+        portalMinBuffer[2] = 8e+26;
+        portalMinBuffer[3] = 1.0;
+
         // portal screen bounds
         var left = 8e+26;
         var top = 8e+26;
@@ -1220,28 +1233,68 @@ function Map(mapName, pakFile){
 
         for(var i = 0; i < points.length; ++i){
             point = points[i];
-            Matrix4.multiplyVector(camera.mvpMatrix, point, portalVectorBuffer);
+            Matrix4.multiplyVector(camera.transform.invMatrix, point, portalVectorBuffer);
 
-            // Get the screen poistion for the points.
-            absDiv = Math.abs(portalVectorBuffer[3]);
-            x = portalVectorBuffer[0] / absDiv;
-            y = portalVectorBuffer[1] / absDiv;
+            portalVectorBuffer[2] = -portalVectorBuffer[2];
 
-            if(x < left){
-                left = x;
-            }
+            Vector3.max(portalVectorBuffer, portalMaxBuffer, portalMaxBuffer);
+            Vector3.min(portalVectorBuffer, portalMinBuffer, portalMinBuffer);
+        }
 
-            if(x > right){
-                right = x;
-            }
+        portalMinBuffer[2] = -portalMinBuffer[2];
+        portalMaxBuffer[2] = -portalMaxBuffer[2];
 
-            if(y < top){
-                top = y;
-            }
+        // Check if the portal is behind the camera
+        if(portalMaxBuffer[2] > camera.near){
+            return;
+        }
 
-            if(y > bottom){
-                bottom = y;
-            }
+        if(portalMinBuffer[2] > camera.near){
+            portalMinBuffer[2] = camera.near;
+        }
+
+        // Find the screen max bounds
+        Matrix4.multiplyVector(camera.projectionMatrix, portalMaxBuffer, portalVectorBuffer);
+        absDiv = Math.abs(portalVectorBuffer[3]);
+        x = portalVectorBuffer[0] / absDiv;
+        y = portalVectorBuffer[1] / absDiv;
+
+        if(x < left){
+            left = x;
+        }
+
+        if(x > right){
+            right = x;
+        }
+
+        if(y < top){
+            top = y;
+        }
+
+        if(y > bottom){
+            bottom = y;
+        }
+
+        // Find the screen min bounds
+        Matrix4.multiplyVector(camera.projectionMatrix, portalMinBuffer, portalVectorBuffer);
+        absDiv = Math.abs(portalVectorBuffer[3]);
+        x = portalVectorBuffer[0] / absDiv;
+        y = portalVectorBuffer[1] / absDiv;
+
+        if(x < left){
+            left = x;
+        }
+
+        if(x > right){
+            right = x;
+        }
+
+        if(y < top){
+            top = y;
+        }
+
+        if(y > bottom){
+            bottom = y;
         }
 
         // Check if our portal is outside the visible area of the screen.
