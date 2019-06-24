@@ -274,11 +274,6 @@ var Material = function(){
     function setBlendFromValue(file, firstToken){
         switch(firstToken){
             case "blend":
-                this.blend.src = BLEND_MODES["gl_zero"];
-                this.blend.dst = BLEND_MODES["gl_one"];
-                break;
-
-            case "add":
                 this.blend.src = BLEND_MODES["gl_src_alpha"];
                 this.blend.dst = BLEND_MODES["gl_one_minus_src_alpha"];
                 break;
@@ -305,6 +300,11 @@ var Material = function(){
 
             case "bumpmap":
             case "diffusemap":
+                this.blend.custom = firstToken;
+                this.blend.src = BLEND_MODES["gl_one"];
+                this.blend.dst = BLEND_MODES["gl_one"];
+                break;
+                
             case "specularmap":
                 this.blend.custom = firstToken;
                 break;
@@ -385,7 +385,7 @@ var Material = function(){
         this.blend = {
             customMode: null,
             src: BLEND_MODES["gl_one"],
-            dst: BLEND_MODES["gl_one"]
+            dst: BLEND_MODES["gl_zero"]
         }
         this.map = null;
         this.maskRed = true;
