@@ -5,7 +5,9 @@ const BLEND_MODES = {
     "gl_one" : 1,
     "gl_src_alpha" : 770,
     "gl_one_minus_src_alpha" : 771,
-    "gl_dst_color" : 774
+    "gl_dst_color" : 774,
+    "gl_one_minus_dst_alpha" : 773,
+    "gl_src_color" : 768
 }
 
 
@@ -321,10 +323,10 @@ var Material = function(){
 
     function createColorMaskFunction(mask){
         return function(file){
-            this.maskRed = mask & 0xFF000000 !== 0;
-            this.maskBlue = mask & 0x00FF0000 !== 0;
-            this.maskGreen = mask & 0x0000FF00 !== 0;
-            this.maskAlpha = mask & 0x000000FF !== 0;
+            this.maskRed = (mask & 0xFF000000) !== 0;
+            this.maskBlue = (mask & 0x00FF0000) !== 0;
+            this.maskGreen = (mask & 0x0000FF00) !== 0;
+            this.maskAlpha = (mask & 0x000000FF) !== 0;
         }
     }
 
@@ -1186,24 +1188,6 @@ function Map(mapName, pakFile){
 
     }
 
-    function getAreaByPoint(x, y, z){
-        // TODO: place areas into oct tree.
-        var areas = this.areas;
-        var bounds;
-        for(var key in areas){
-            if(areas.hasOwnProperty(key)){
-                bounds = areas[key].bounds;
-
-                if(!(x < bounds[0] || x > bounds[3] 
-                    || y < bounds[1] || y > bounds[4]
-                    || z < bounds[2] || z > bounds[5])){
-                        return areas[key];
-                    }
-            }
-        }
-
-        return null;
-    }
 
     let portalMaxBuffer = new Vector3();
     let portalMinBuffer = new Vector3();
@@ -1235,22 +1219,19 @@ function Map(mapName, pakFile){
             point = points[i];
             Matrix4.multiplyVector(camera.transform.invMatrix, point, portalVectorBuffer);
 
-            portalVectorBuffer[2] = -portalVectorBuffer[2];
-
             Vector3.max(portalVectorBuffer, portalMaxBuffer, portalMaxBuffer);
             Vector3.min(portalVectorBuffer, portalMinBuffer, portalMinBuffer);
         }
 
-        portalMinBuffer[2] = -portalMinBuffer[2];
-        portalMaxBuffer[2] = -portalMaxBuffer[2];
-
         // Check if the portal is behind the camera
-        if(portalMaxBuffer[2] > camera.near){
+        if(portalMinBuffer[2] > camera.near){
+            // This means that the entire portal bounding box is behind the camera.
             return;
         }
 
-        if(portalMinBuffer[2] > camera.near){
-            portalMinBuffer[2] = camera.near;
+        if(portalMaxBuffer[2] > camera.near){
+            // Move the max buffer close to the camera if needed.
+            portalMaxBuffer[2] = camera.near;
         }
 
         // Find the screen max bounds
