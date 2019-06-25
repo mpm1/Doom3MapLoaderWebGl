@@ -1,16 +1,3 @@
-
-// Blend modes using webgl values
-const BLEND_MODES = {
-    "gl_zero" : 0,
-    "gl_one" : 1,
-    "gl_src_alpha" : 770,
-    "gl_one_minus_src_alpha" : 771,
-    "gl_dst_color" : 774,
-    "gl_one_minus_dst_alpha" : 773,
-    "gl_src_color" : 768
-}
-
-
 var Transform = function(position, rotation, scale){
     this.init(position, rotation, scale);
 }
@@ -233,257 +220,6 @@ var Camera = function(){
         this.far = far;
 
         return Camera.createFrustrum(left, right, bottom, top, near, far, this.projectionMatrix);
-    }
-}
-
-var Material = function(){
-    this.init();
-}
-{
-    function createSetStringFunction(name){
-        return function(file){
-            this[name] = file.next();
-        }
-    }
-
-    function createSetNumberFunction(name){
-        return function(file){
-            this[name] = parseFloat(file.next());
-        }
-    }
-
-    function createSetImageFunction(name){
-        return function(file, map){
-            this[name] = map.getTexture(file.next());
-        }
-    }
-
-    function createMapFunction(blendFunc){
-        return function(file, map){
-            this.map = map.getTexture(file.next());
-            setBlendFromValue.call(this, file, blendFunc);
-        }
-    }
-
-    function createSetBoolFunction(name, value){
-        return function(file){
-            this[name] = value;
-        }
-    }
-
-    function setBlendFromValue(file, firstToken){
-        switch(firstToken){
-            case "blend":
-                this.blend.src = BLEND_MODES["gl_src_alpha"];
-                this.blend.dst = BLEND_MODES["gl_one_minus_src_alpha"];
-                break;
-
-            case "add":
-                this.blend.src = BLEND_MODES["gl_one"];
-                this.blend.dst = BLEND_MODES["gl_one"];
-                break;
-
-            case "filter":
-                this.blend.src = BLEND_MODES["gl_dst_color"];
-                this.blend.dst = BLEND_MODES["gl_zero"];
-                break;
-
-            case "none":
-                this.blend.src = BLEND_MODES["gl_zero"];
-                this.blend.dst = BLEND_MODES["gl_zero"];
-                break;
-
-            case "filter":
-                this.blend.src = BLEND_MODES["gl_dst_color"];
-                this.blend.dst = BLEND_MODES["gl_zero"];
-                break;
-
-            case "bumpmap":
-            case "diffusemap":
-                this.blend.custom = firstToken;
-                this.blend.src = BLEND_MODES["gl_one"];
-                this.blend.dst = BLEND_MODES["gl_one"];
-                break;
-                
-            case "specularmap":
-                this.blend.custom = firstToken;
-                break;
-
-            default:
-                this.blend.src = BLEND_MODES[firstToken];
-                this.blend.dst = BLEND_MODES[file.next()];
-        }
-    }
-
-    function setBlendFunction(file){
-        var firstToken = file.next();
-
-        setBlendFromValue.call(this, file, firstToken);
-    }
-
-    function createColorMaskFunction(mask){
-        return function(file){
-            this.maskRed = (mask & 0xFF000000) !== 0;
-            this.maskBlue = (mask & 0x00FF0000) !== 0;
-            this.maskGreen = (mask & 0x0000FF00) !== 0;
-            this.maskAlpha = (mask & 0x000000FF) !== 0;
-        }
-    }
-
-    var tokenFunctions = {
-        "qer_editorimage" : createSetStringFunction("editorImage"),
-        "blend" : setBlendFunction,
-        "map" : createSetImageFunction("map"),
-        "diffusemap" : createMapFunction("diffusemap"),
-        "specularmap" : createMapFunction("specularmap"),
-        "bumpmap" : createMapFunction("bumpmap"),
-        "maskred" : createColorMaskFunction(0x00FFFFFF),
-        "maskgreen" : createColorMaskFunction(0xFF00FFFF),
-        "maskblue" : createColorMaskFunction(0xFFFF00FF),
-        "maskalpha" : createColorMaskFunction(0xFFFFFF00),
-        "maskcolor" : createColorMaskFunction(0x000000FF),
-        "alphatest" : createSetNumberFunction("alphaTest"),
-        "translucent" : createSetBoolFunction("translucent", true),
-        "nonsolid" : createSetBoolFunction("solid", false),
-        "alphatest" : createSetBoolFunction("alphaTest", true),
-        "noshadows" : createSetBoolFunction("shadows", false),
-        "noselfshadow" : createSetBoolFunction("selfShadow", false)
-
-    }
-
-    function parseElement(file, map){
-        var token;
-
-        while((token = file.next()) != null){
-            if(token == "{"){
-                var child = new Material();
-
-                if(parseElement.call(child, file, map)){
-                    this.stages.push(child);
-                }
-            }else if(token == "}"){
-                return true;
-            }
-            else{
-                token = token.toLowerCase();
-                if(tokenFunctions[token]){
-                    tokenFunctions[token].call(this, file, map)
-                }else{
-                    Console.current.writeLine("Function " + token + " not found.");
-                }
-            }
-        }
-
-        return false;
-    }
-
-    Material.prototype.init = function(){
-        this.stages = [];
-        this.name = null;
-
-        this.editorImage = null;
-        this.blend = {
-            customMode: null,
-            src: BLEND_MODES["gl_one"],
-            dst: BLEND_MODES["gl_zero"]
-        }
-        this.map = null;
-        this.maskRed = true;
-        this.maskGreen = true;
-        this.maskBlue = true;
-        this.maskAlpha = true;
-        this.alphaTest = 0.0;
-        this.translucent = false;
-        this.solid = true;
-        this.alphaTest = false;
-        this.shadows = true;
-        this.selfShadows = true;
-    }
-
-    Material.prototype.parse = function(file, map){
-        var token;
-
-        // This will only obtain the first material element it finds.
-        do{
-            token = file.current();
-
-            if(token == "{"){
-                return parseElement.call(this, file, map);
-            }else{
-                this.name = token;
-            }
-        }while(file.next() != null);
-
-        return false;
-    }
-}
-
-var Texture = function(){
-    this.imageData = null;
-
-    this.glTexture = null;
-}
-{
-    function generateEmptyTexture(gl){
-        var texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        const level = 0;
-        const internalFormat = gl.RGBA;
-        const width = 1;
-        const height = 1;
-        const border = 0;
-        const srcFormat = gl.RGBA;
-        const srcType = gl.UNSIGNED_BYTE;
-        const pixel = new Uint8Array([0, 0, 255, 255]);
-        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                        width, height, border, srcFormat, srcType,
-                        pixel);
-
-        texture.loaded = false;
-
-        return texture;
-    }
-
-    Texture.prototype.load = function(tgaData){
-        var tga = new TGA();
-        tga.load(tgaData);
-
-        this.imageData = tga.getImageData();
-    }
-
-    Texture.prototype.getGlTexture = function(gl){
-        var texture = this.glTexture;
-
-        if(texture == null){
-            texture = generateEmptyTexture(gl);
-            this.glTexture = texture;
-        }
-
-        if(!texture.loaded && this.imageData != null){
-            var imageData = this.imageData;
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  
-                imageData.width, imageData.height, 0, gl.RGBA,
-                gl.UNSIGNED_BYTE, new Uint8Array(imageData.data.buffer));
-
-            if(isPositivePower2(imageData.width) && isPositivePower2(imageData.height)){
-                gl.generateMipmap(gl.TEXTURE_2D);
-            }else{
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            }
-
-            texture.loaded = true;
-        }
-
-        return texture;
-    }
-
-    Texture.prototype.destroyGlTexture = function(gl){
-        gl.deleteTexture(this.glTexture);
     }
 }
 
@@ -885,9 +621,13 @@ function Map(mapName, pakFile){
 
         Console.current.writeLine("Loading materials...");
 
-        while(materialFile.next() != null){
+        var token;
+        while((token = materialFile.next()) != null){
             var material = new Material();
+            material.name = token;
 
+            materialFile.next(); // Opening bracket.
+            
             if(material.parse(materialFile, this)){
                 this.materials[material.name] = material;
                 ++materialCount;
@@ -1394,7 +1134,13 @@ function Map(mapName, pakFile){
                         drawBuffer.transparentModels.push(brush);
                     }else{
                         drawBuffer.opaqueModels.push(brush);
+                    }
 
+                    if(material.stages.length > 0){
+                        drawBuffer.fullBrightModels.push(brush);
+                    }
+
+                    if(material.diffuseStage != null){
                         for(var lightName in lights){
                             var light = drawBuffer.lights[lightName];
 

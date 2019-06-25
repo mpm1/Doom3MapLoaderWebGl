@@ -1,3 +1,12 @@
+var lightStruct = `
+struct Light {
+    highp vec3 center;
+    highp vec4 radius;
+    lowp vec4 color;
+    lowp int shadows;
+};
+`
+
 var depthVertex = `#version 300 es
 in vec3 a_position;
 
@@ -20,48 +29,64 @@ void main(){
 `
 
 var lightVertex = `#version 300 es
+` + lightStruct + `
+
     in vec3 a_position;
     in vec2 a_textureCoord;
     in vec3 a_normal;
 
+    uniform Light uLight;
     uniform mat4 worldTransform;
     uniform mat4 projectionTransform;
 
     out vec3 v_position;
     out vec2 v_textureCoord;
     out vec3 v_normal;
+    out vec3 v_light;
 
     void main(){
+        vec4 position = worldTransform * vec4(a_position, 1.0);
         v_position = a_position;
+
+        v_light = (worldTransform * vec4(uLight.center, 1.0)).xyz;
         v_textureCoord = a_textureCoord;
         v_normal = normalize(a_normal);
 
-        gl_Position = projectionTransform * worldTransform * vec4(a_position, 1.0);
+        gl_Position = projectionTransform * position;
     }
 `
 
 var lightFragment = `#version 300 es
     precision mediump float;
 
-    struct Material {
+    struct MaterialStage {
         sampler2D map;
     };
 
-    struct Light {
-        vec3 center;
-        vec4 radius;
-        vec4 color;
-        int shadows;
-    };
+    ` + lightStruct + `
 
+    in vec3 v_light;
     in vec3 v_position;
     in vec2 v_textureCoord;
     in vec3 v_normal;
 
     uniform Light uLight;
-    uniform Material uMaterial;
+    uniform MaterialStage uDiffuse;
+    uniform MaterialStage uSpecular;
 
     out vec4 outColor;
+
+    vec3 calculateDiffuse(float nDotL, float power){
+        vec3 color = texture(uDiffuse.map, v_textureCoord).rgb;
+
+        return color * uLight.color.rgb * nDotL * power;
+    }
+
+    vec3 calculateSpecular(vec3 n, float power){
+        // TODO: calcualte based on the camera.
+        float eDotL = dot(vec3(0, 0, -1), normalize(v_light));
+        return texture(uSpecular.map, v_textureCoord).rgb * power * eDotL;
+    }
 
     void main(){
         vec3 n = normalize(v_normal);
@@ -69,9 +94,8 @@ var lightFragment = `#version 300 es
         float nDotL = clamp(dot(n, normalize(lightVec)), 0.0, 1.0);
         float power = 1.0 - clamp(length(lightVec / uLight.radius.xyz), 0.0, 1.0);
 
-        outColor = texture(uMaterial.map, v_textureCoord);
-        outColor.rgb *= uLight.color.rgb;
-        outColor.rgb *= pow(power, 1.1);
+        outColor.rgb = clamp(calculateDiffuse(nDotL, power) + calculateSpecular(n, 0.0), 0.0, 1.0);
+        outColor.a = 1.0;
     }
 `
 
@@ -270,8 +294,12 @@ function Display(canvas){
                             break;
                 }
 
-                if(propName.name == "materialMap"){
-                    gl.uniform1i(program["materialMap"], 0);
+                if(propName.name == "diffuseMap"){
+                    gl.uniform1i(program["diffuseMap"], 0);
+                }
+
+                if(propName.name == "specularMap"){
+                    gl.uniform1i(program["specularMap"], 1);
                 }
             });
 
@@ -280,7 +308,7 @@ function Display(canvas){
             return program;
         }
 
-        Console.log.writeLine("Error creating shader program " + name + ": " + gl.getProgramInfoLog(program));
+        Console.current.writeLine("Error creating shader program " + name + ": " + gl.getProgramInfoLog(program));
         gl.deleteProgram(program);
     }
 
@@ -315,7 +343,9 @@ function Display(canvas){
                 { name: "lightColor", glName: "uLight.color", type: "uniform" },
                 { name: "lightShadow", glName: "uLight.shadows", type: "uniform" },
 
-                { name: "materialMap", glName: "uMaterial.map", type: "uniform" },
+                { name: "diffuseMap", glName: "uDiffuse.map", type: "uniform" },
+
+                { name: "specularMap", glName: "uSpecular.map", type: "uniform" },
             ]) 
         };
 
@@ -368,6 +398,7 @@ function Display(canvas){
         gl.depthMask(false);
     }
 
+    // TODO: fix
     function drawMaterialStage(gl, model, stage){
         if(!stage.map){
             return;
@@ -399,6 +430,7 @@ function Display(canvas){
         setShaderUniforms(gl, program, camera);
 
         gl.depthFunc(gl.LEQUAL);
+        gl.blendFunc(gl.ONE, gl.ONE);
 
         gl.enable(gl.BLEND);
 
@@ -425,18 +457,17 @@ function Display(canvas){
             light.models.forEach(function(model){
                 var material = model.material;
 
-                // Set any base material values
+                // Set the textures
+                var texture = material.diffuseStage.map.getGlTexture(gl);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
 
-                // Draw each stage
-                if(material){
-                    if(material.stages.length > 0){
-                        material.stages.forEach(function(stage){
-                            drawMaterialStage(gl, model, stage);
-                        });
-                    }else{
-                        drawMaterialStage(gl, model, material);
-                    }
-                }
+                texture = material.specularStage.map.getGlTexture(gl);
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+
+                // Set any properties
+
 
                 drawModel(gl, program, model);
             })
