@@ -7,6 +7,12 @@ struct Light {
 };
 `
 
+var stageStruct = `
+struct MaterialStage {
+    sampler2D map;
+};
+`
+
 var depthVertex = `#version 300 es
 in vec3 a_position;
 
@@ -59,9 +65,7 @@ var lightVertex = `#version 300 es
 var lightFragment = `#version 300 es
     precision mediump float;
 
-    struct MaterialStage {
-        sampler2D map;
-    };
+    ` + stageStruct + `
 
     ` + lightStruct + `
 
@@ -96,6 +100,49 @@ var lightFragment = `#version 300 es
 
         outColor.rgb = clamp(calculateDiffuse(nDotL, power) + calculateSpecular(n, 0.0), 0.0, 1.0);
         outColor.a = 1.0;
+    }
+`
+
+var stageVertex = `#version 300 es
+    in vec3 a_position;
+    in vec2 a_textureCoord;
+    in vec3 a_normal;
+
+    uniform mat4 worldTransform;
+    uniform mat4 projectionTransform;
+
+    out vec3 v_position;
+    out vec2 v_textureCoord;
+    out vec3 v_normal;
+
+    void main(){
+        vec4 position = worldTransform * vec4(a_position, 1.0);
+        v_position = a_position;
+
+        v_textureCoord = a_textureCoord;
+        v_normal = normalize(a_normal);
+
+        gl_Position = projectionTransform * position;
+    }
+`
+
+var stageFragment = `#version 300 es
+    precision mediump float;
+
+    ` + stageStruct + `
+
+    ` + lightStruct + `
+
+    in vec3 v_position;
+    in vec2 v_textureCoord;
+    in vec3 v_normal;
+
+    uniform MaterialStage uStage;
+
+    out vec4 outColor;
+
+    void main(){
+        outColor = texture(uStage.map, v_textureCoord);
     }
 `
 
@@ -301,6 +348,10 @@ function Display(canvas){
                 if(propName.name == "specularMap"){
                     gl.uniform1i(program["specularMap"], 1);
                 }
+
+                if(propName.name == "stageMap"){
+                    gl.uniform1i(program["stageMap"], 2);
+                }
             });
 
             Console.current.writeLine("Shader loaded successfully.");
@@ -346,6 +397,16 @@ function Display(canvas){
                 { name: "diffuseMap", glName: "uDiffuse.map", type: "uniform" },
 
                 { name: "specularMap", glName: "uSpecular.map", type: "uniform" },
+            ]),
+            "stage" : createShaderProgram(gl, "stage", stageVertex, stageFragment, [
+                { name: "positionAttribute", glName: "a_position", type: "attribute" },
+                { name: "textureCoordAttribute", glName: "a_textureCoord", type: "attribute" },
+                { name: "normalAttribute", glName: "a_normal", type: "attribute" },
+
+                { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
+                { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
+
+                { name: "stageMap", glName: "uStage.map", type: "uniform" },
             ]) 
         };
 
@@ -396,25 +457,6 @@ function Display(canvas){
         });
 
         gl.depthMask(false);
-    }
-
-    // TODO: fix
-    function drawMaterialStage(gl, model, stage){
-        if(!stage.map){
-            return;
-        }
-
-        // Set the blend function
-        gl.blendFunc(stage.blend.src, stage.blend.dst);
-
-        // Set the color mask
-        gl.colorMask(stage.maskRed, stage.maskGreen, stage.maskBlue, stage.maskAlpha);
-
-        // Set the textures
-        var texture = stage.map.getGlTexture(gl);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
     }
 
     function drawLights(gl, drawBuffer, camera){
@@ -481,6 +523,52 @@ function Display(canvas){
         gl.disable(gl.BLEND);
     }
 
+    function drawStages(gl, drawBuffer, camera){
+        var program = this.shaders.stage;
+
+        gl.useProgram(program);
+        gl.enableVertexAttribArray(program.positionAttribute);
+        gl.enableVertexAttribArray(program.normalAttribute);
+        gl.enableVertexAttribArray(program.textureCoordAttribute);
+
+        setShaderUniforms(gl, program, camera);
+
+        gl.depthFunc(gl.LEQUAL);
+
+        gl.enable(gl.BLEND);
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+
+        drawBuffer.fullBrightModels.forEach(function(model){
+            var material = model.material;
+
+            material.stages.forEach(function(stage){
+                if(!stage.map){
+                    return;
+                }
+        
+                // Set the blend function
+                gl.blendFunc(stage.blend.src, stage.blend.dst);
+        
+                // Set the color mask
+                gl.colorMask(stage.maskRed, stage.maskGreen, stage.maskBlue, stage.maskAlpha);
+        
+                // Set the textures
+                var texture = stage.map.getGlTexture(gl);
+        
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+
+                drawModel(gl, program, model);
+            });
+        });
+
+        gl.disableVertexAttribArray(program.normalAttribute);
+        gl.disableVertexAttribArray(program.textureCoordAttribute);
+
+        gl.disable(gl.POLYGON_OFFSET_FILL);
+        gl.disable(gl.BLEND);
+    }
+
     Display.prototype.draw = function(drawBuffer, camera){
         var gl = this.gl;
         var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
@@ -495,6 +583,7 @@ function Display(canvas){
         drawLights.call(this, gl, drawBuffer, camera);
 
         // Draw fully bright elements
+        drawStages.call(this, gl, drawBuffer, camera);
 
         // Draw transparent elements
         gl.depthMask(true);

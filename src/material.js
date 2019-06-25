@@ -150,7 +150,7 @@ var MaterialStage = function(){
     function setBlendFunction(file){
         var firstToken = file.next();
 
-        setBlendFromValue.call(this, file, firstToken);
+        setBlendFromValue.call(this, file, firstToken.toLowerCase());
     }
 
     function createSetNumberFunction(name){
@@ -183,8 +183,8 @@ var MaterialStage = function(){
         this.map = DEFAULT_MAP;
         this.blend = {
             customMode: null,
-            src: BLEND_MODES["gl_one"],
-            dst: BLEND_MODES["gl_zero"]
+            src: BLEND_MODES["gl_zero"],
+            dst: BLEND_MODES["gl_one"]
         }
 
         this.maskRed = true;
