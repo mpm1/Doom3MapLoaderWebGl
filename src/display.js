@@ -115,12 +115,15 @@ var lightFragment = `#version 300 es
 `
 
 var stageVertex = `#version 300 es
+` + stageStruct + `
+
     in vec3 a_position;
     in vec2 a_textureCoord;
     in vec3 a_normal;
 
     uniform mat4 worldTransform;
     uniform mat4 projectionTransform;
+    uniform MaterialStage uStage;
 
     out vec3 v_position;
     out vec2 v_textureCoord;
@@ -131,6 +134,9 @@ var stageVertex = `#version 300 es
         v_position = a_position;
 
         v_textureCoord = a_textureCoord;
+        v_textureCoord *= uStage.scale;
+        v_textureCoord += uStage.translate;
+
         v_normal = normalize(a_normal);
 
         gl_Position = projectionTransform * position;
@@ -151,8 +157,7 @@ var stageFragment = `#version 300 es
     out vec4 outColor;
 
     void main(){
-        vec2 textureCoord = v_textureCoord + uStage.translate;
-        outColor = texture(uStage.map, textureCoord);
+        outColor = texture(uStage.map, v_textureCoord);
     }
 `
 
@@ -320,6 +325,7 @@ function Display(canvas){
 
                 { name: "stageMap", glName: "uStage.map", type: "uniform" },
                 { name: "stageTranslate", glName: "uStage.translate", type: "uniform" },
+                { name: "stageScale", glName: "uStage.scale", type: "uniform" },
             ]) 
         };
 
@@ -464,6 +470,7 @@ function Display(canvas){
 
                 // Set stage properties
                 gl.uniform2fv(program.stageTranslate, stage.translate);
+                gl.uniform2fv(program.stageScale, stage.scale);
         
                 // Set the textures
                 var texture = stage.map.getGlTexture(gl);
