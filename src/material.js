@@ -30,7 +30,13 @@ var Texture = function(){
         var _this = this;
 
         img.onload = function(){
-            _this.imageData = img.getImageData(0, 0, img.width, img.height);
+            var canvas = document.createElement('canvas');
+            var context = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            context.drawImage(img, 0, 0);
+
+            _this.imageData = context.getImageData(0, 0, img.width, img.height);
         }
     }
 
@@ -91,13 +97,18 @@ DEFAULT_DIFFUSE.loadFromUrl("./imgs/blue.png");
 
 // Blend modes using webgl values
 const BLEND_MODES = {
-    "gl_zero" : 0,
     "gl_one" : 1,
+    "gl_zero" : 0,
+    "gl_dst_color" : 774,
+    "gl_one_minus_dst_color" : 775,
     "gl_src_alpha" : 770,
     "gl_one_minus_src_alpha" : 771,
-    "gl_dst_color" : 774,
+    "gl_dst_alpha" : 772,
     "gl_one_minus_dst_alpha" : 773,
-    "gl_src_color" : 768
+    "gl_src_alpha_saturate" : 776,
+    "gl_src_color" : 768,
+    "gl_one_minus_src_color" : 769,
+
 }
 
 var MaterialStage = function(){
@@ -143,6 +154,7 @@ var MaterialStage = function(){
 
             default:
                 this.blend.src = BLEND_MODES[firstToken];
+                file.next(); // Get the comma
                 this.blend.dst = BLEND_MODES[file.next()];
         }
     }
@@ -168,6 +180,39 @@ var MaterialStage = function(){
         }
     }
 
+    function readUpdateFunction(file, setter){
+        var token;
+        var updateFunc = "";
+        var isLookup = false;
+
+        while((token = file.next(true)) != null){
+            if(token == ',' || token == '\n'){
+                break;
+            }
+
+            if(Material.LOOKUP_TABLE.hasOwnProperty(token)){
+                isLookup = true;
+                updateFunc += ("Material.LOOKUP_TABLE." + token);
+            }else{
+                updateFunc += token;
+            }
+        }
+
+        var func = new Function("timeDelta", setter + " = " + updateFunc + ";");
+        if(isLookup){
+            this.updateFunctions.push(func);
+        }else{
+            func.call(this, 0);
+        }
+    }
+
+    function createVector2UpdateFunction(name){
+        return function(file){
+            readUpdateFunction.call(this, file, "this." + name + "[0]");
+            readUpdateFunction.call(this, file, "this." + name + "[1]");
+        }
+    }
+
     let tokenFunctions = {
         "blend" : setBlendFunction,
         "map" : setMapFunction,
@@ -177,14 +222,16 @@ var MaterialStage = function(){
         "maskalpha" : createColorMaskFunction(0xFFFFFF00),
         "maskcolor" : createColorMaskFunction(0x000000FF),
         "alphatest" : createSetNumberFunction("alphaTest"),
+        "translate" : createVector2UpdateFunction("translate"),
+        "scale" : createVector2UpdateFunction("scale")
     }
 
     MaterialStage.prototype.init = function(){
         this.map = DEFAULT_MAP;
         this.blend = {
             customMode: null,
-            src: BLEND_MODES["gl_zero"],
-            dst: BLEND_MODES["gl_one"]
+            src: BLEND_MODES["gl_one"],
+            dst: BLEND_MODES["gl_zero"]
         }
 
         this.maskRed = true;
@@ -192,6 +239,12 @@ var MaterialStage = function(){
         this.maskBlue = true;
         this.maskAlpha = true;
         this.alphaTest = 0.0;
+
+        this.translate = new Float32Array([0, 0]);
+        this.scale = new Float32Array([1.0, 1.0]);
+        this.rotate = 0.0;
+
+        this.updateFunctions = [];
     }
 
     MaterialStage.prototype.parse = function(file, map){
@@ -211,12 +264,22 @@ var MaterialStage = function(){
             }
         }
     }
+
+    MaterialStage.prototype.update = function(timeDelta){
+        for(var i = 0; i < this.updateFunctions.length; ++i){
+            this.updateFunctions[i].call(this, timeDelta);
+        }
+    }
 }
 
 var Material = function(){
     this.init();
 }
 {
+    Material.LOOKUP_TABLE = {
+        time: 0,
+
+    }
     function createSetStringFunction(name){
         return function(file){
             this[name] = file.next();
@@ -313,6 +376,12 @@ var Material = function(){
         this.alphaTest = false;
         this.shadows = true;
         this.selfShadows = true;
+    }
+
+    Material.prototype.update = function(timeDelta){
+        this.stages.forEach(function(stage){
+            stage.update(timeDelta);
+        });
     }
 
     Material.prototype.parse = function(file, map){

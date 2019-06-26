@@ -10,6 +10,8 @@ struct Light {
 var stageStruct = `
 struct MaterialStage {
     sampler2D map;
+    highp vec2 translate;
+    highp vec2 scale; 
 };
 `
 
@@ -20,7 +22,8 @@ uniform mat4 worldTransform;
 uniform mat4 projectionTransform;
 
 void main(){
-    gl_Position = projectionTransform * worldTransform * vec4(a_position, 1.0);
+    vec4 position = worldTransform * vec4(a_position, 1.0);
+    gl_Position = projectionTransform * position;
 }
 `
 
@@ -80,16 +83,25 @@ var lightFragment = `#version 300 es
 
     out vec4 outColor;
 
-    vec3 calculateDiffuse(float nDotL, float power){
-        vec3 color = texture(uDiffuse.map, v_textureCoord).rgb;
+    vec4 calculateDiffuse(float nDotL, float power){
+        vec4 color = texture(uDiffuse.map, v_textureCoord);
+        color.rgb *= uLight.color.rgb;
+        color.rgb *= nDotL * power * color.a;
 
-        return color * uLight.color.rgb * nDotL * power;
+        return color;
     }
 
-    vec3 calculateSpecular(vec3 n, float power){
+    // TODO: calculate specular
+    vec4 calculateSpecular(vec3 n, float power){
+        vec4 color = texture(uSpecular.map, v_textureCoord);
+
         // TODO: calcualte based on the camera.
-        float eDotL = dot(vec3(0, 0, -1), normalize(v_light));
-        return texture(uSpecular.map, v_textureCoord).rgb * power * eDotL;
+        float eDotL = clamp(dot(vec3(0, 0, -1), normalize(v_light)), 0.0, 1.0);
+
+        color.rgb *= uLight.color.rgb;
+        color.rgb *= eDotL * power * color.a;
+
+        return color;
     }
 
     void main(){
@@ -98,8 +110,7 @@ var lightFragment = `#version 300 es
         float nDotL = clamp(dot(n, normalize(lightVec)), 0.0, 1.0);
         float power = 1.0 - clamp(length(lightVec / uLight.radius.xyz), 0.0, 1.0);
 
-        outColor.rgb = clamp(calculateDiffuse(nDotL, power) + calculateSpecular(n, 0.0), 0.0, 1.0);
-        outColor.a = 1.0;
+        outColor = clamp(calculateDiffuse(nDotL, power) + calculateSpecular(n, 0.0), 0.0, 1.0);
     }
 `
 
@@ -131,8 +142,6 @@ var stageFragment = `#version 300 es
 
     ` + stageStruct + `
 
-    ` + lightStruct + `
-
     in vec3 v_position;
     in vec2 v_textureCoord;
     in vec3 v_normal;
@@ -142,7 +151,8 @@ var stageFragment = `#version 300 es
     out vec4 outColor;
 
     void main(){
-        outColor = texture(uStage.map, v_textureCoord);
+        vec2 textureCoord = v_textureCoord + uStage.translate;
+        outColor = texture(uStage.map, textureCoord);
     }
 `
 
@@ -165,106 +175,6 @@ function createIndexBuffer(gl, indecies){
     indecies.glBuffer = buffer;
 }
 
-var BoundsTester = function(gl, createShaderProgramFunction){
-    this.init(gl, createShaderProgramFunction);
-    this.indecies = new Uint16Array([ // Not the best traversal, but it will work for now
-        0, 1, 3, 2,
-        0, 4, 5, 1,
-        3, 7, 5, 4,
-        6, 7, 6, 2
-    ]);
-    this.vertecies = new Float32Array([
-        0, 0, 0,
-        0, 0, 1,
-        0, 1, 0,
-        0, 1, 1,
-        1, 0, 0,
-        1, 0, 1,
-        1, 1, 0,
-        1, 1, 1
-    ]);
-    this.color = new Float32Array([0.0, 1.0, 0.0, 1.0]);
-}
-{
-    var boundsVertex = `#version 300 es
-        in vec3 a_position;
-
-        uniform mat4 worldTransform;
-        uniform mat4 projectionTransform;
-
-        out vec4 v_position;
-
-        void main(){
-            v_position = worldTransform * vec4(a_position, 1.0);
-
-            gl_Position = projectionTransform * v_position;
-        }
-    `
-
-    var boundsFragment = `#version 300 es
-        precision mediump float;
-
-        uniform vec4 uColor;
-
-        in vec4 v_position;
-
-        out vec4 outColor;
-
-        void main(){
-            outColor = uColor;
-        }
-    `
-    BoundsTester.prototype.init = function(gl, createShaderProgramFunction){
-        this.program = createShaderProgramFunction(gl, "boundsTest", boundsVertex, boundsFragment, [
-            { name: "positionAttribute", glName: "a_position", type: "attribute" },
-
-            { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
-            { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
-            { name: "colorUniform", glName: "uColor", type: "uniform" },
-        ]);
-    }
-
-    BoundsTester.prototype.draw = function(gl, bounds, mvMatrix, projectionMatrix){
-        var vert = this.vertecies;
-        var indecies = this.indecies;
-        var program = this.program;
-
-        gl.useProgram(program);
-        gl.enableVertexAttribArray(program.positionAttribute);
-
-        // Set the new vertecies
-        vert[0] = bounds[0]; vert[1] = bounds[1]; vert[2] = bounds[2];
-        vert[3] = bounds[0]; vert[4] = bounds[1]; vert[5] = bounds[5];
-        vert[6] = bounds[0]; vert[7] = bounds[4]; vert[8] = bounds[2];
-        vert[9] = bounds[0]; vert[10] = bounds[4]; vert[11] = bounds[5];
-        vert[12] = bounds[3]; vert[13] = bounds[1]; vert[14] = bounds[2];
-        vert[15] = bounds[3]; vert[16] = bounds[1]; vert[17] = bounds[5];
-        vert[18] = bounds[3]; vert[19] = bounds[4]; vert[20] = bounds[2];
-        vert[21] = bounds[3]; vert[22] = bounds[4]; vert[23] = bounds[5];
-
-        if(!indecies.glBuffer){
-            createVertexBuffer(gl, vert);
-            createIndexBuffer(gl, indecies);
-        }else{
-            gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, vert, gl.STATIC_DRAW);
-        }
-
-        // Set the uniforms
-        gl.uniformMatrix4fv(program.modelMatrixUniform, false, mvMatrix);
-        gl.uniformMatrix4fv(program.viewMatrixUniform, false, projectionMatrix);
-        gl.uniform4fv(program.colorUniform, this.color);
-
-        // Draw the boxes
-        gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
-        gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indecies.glBuffer);
-        gl.drawElements(gl.LINE_LOOP, indecies.length, gl.UNSIGNED_SHORT, 0);
-    }
-}
-
-
 function Display(canvas){
     this.init(canvas);
 }
@@ -284,7 +194,7 @@ function Display(canvas){
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
 
-        gl.polygonOffset(-1.0, -1.0);
+        gl.polygonOffset(-1.0, 0.0);
 
         return gl;
     }
@@ -318,6 +228,8 @@ function Display(canvas){
 
         program.setsTexture = false;
         program.setsNormal = false;
+
+        gl.useProgram(program);
 
         if(gl.getProgramParameter(program, gl.LINK_STATUS)){
             program.name = name;
@@ -407,11 +319,9 @@ function Display(canvas){
                 { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
 
                 { name: "stageMap", glName: "uStage.map", type: "uniform" },
+                { name: "stageTranslate", glName: "uStage.translate", type: "uniform" },
             ]) 
         };
-
-        this.showBounds = false;
-        this.boundsRenderer = new BoundsTester(gl, createShaderProgram);
 
         this.resize(canvas.width, canvas.height);
     }
@@ -551,9 +461,13 @@ function Display(canvas){
         
                 // Set the color mask
                 gl.colorMask(stage.maskRed, stage.maskGreen, stage.maskBlue, stage.maskAlpha);
+
+                // Set stage properties
+                gl.uniform2fv(program.stageTranslate, stage.translate);
         
                 // Set the textures
                 var texture = stage.map.getGlTexture(gl);
+
         
                 gl.activeTexture(gl.TEXTURE2);
                 gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -571,7 +485,6 @@ function Display(canvas){
 
     Display.prototype.draw = function(drawBuffer, camera){
         var gl = this.gl;
-        var boundsRenderer = this.showBounds ? this.boundsRenderer : null;
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 

@@ -10,6 +10,7 @@ var FileLexer = function(file){
 {
     // Tokens obtained from Lexer.cpp in the Doom3 source code
     var tokenTypes = [
+        "\n",
         ">>=",
         "<<=",
         "...",
@@ -19,7 +20,9 @@ var FileLexer = function(file){
         "(",
         ")",
         "{",
-         "}"
+         "}",
+         "*",
+         ","
         ]
 
     function convertFileToTokens(file){
@@ -36,7 +39,7 @@ var FileLexer = function(file){
 
             if(text.length > 0){
                 tokenize(text, tokens);
-                tokens.push[NEW_LINE];
+                tokens.push(NEW_LINE);
             }
         }
 
@@ -100,7 +103,7 @@ var FileLexer = function(file){
 
             value = this.tokens[this.readIndex];
 
-            if(!includeNewLine || value != NEW_LINE){
+            if(includeNewLine || value != NEW_LINE){
                 return this.tokens[this.readIndex];
             }
         };

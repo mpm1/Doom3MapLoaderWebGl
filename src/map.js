@@ -1187,4 +1187,12 @@ function Map(mapName, pakFile){
             readChildAreas.call(this, area, this.drawBuffer, camera, -1.0, -1.0, 1.0, 1.0);
         }
     }
+
+    Map.prototype.update = function(deltaTime){
+        var materials = this.materials;
+
+        for(var key in materials){
+            materials[key].update(deltaTime);
+        }
+    }
 }

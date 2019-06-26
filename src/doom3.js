@@ -7,18 +7,34 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
 
     this.console.addFunction("loadpak", new ConsoleFunction("loadpak", "Loads a pk4 file from a url into memory.", this.loadPk4, this));
     this.console.addFunction("loadmap", new ConsoleFunction("loadmap", "Loads a map from the currently loaded pk4 file.", this.loadMap, this));
-    this.console.addFunction("showbounds", new ConsoleFunction("showbounds", "Shows the map object bouundries", this.showBounds, this));
-    this.console.addFunction("hidebounds", new ConsoleFunction("hidebounds", "Hides the map object bouundries", this.hideBounds, this));
+    this.console.addFunction("viewtexture", new ConsoleFunction("viewtexture", "Draws a specified texture to a canvas on the bottom of the screen.", this.viewTexture, this));
 
     var _this = this;
     this.loadPk4("./test/q3dm1.pk4").then(function(pak){ _this.loadMap("q3dm1"); });
 }
 {
-    Game.prototype.showBounds = function(){
-        this.display.showBounds = true;
-    }
-    Game.prototype.hideBounds = function(){
-        this.display.showBounds = false;
+    Game.prototype.viewTexture = function(texturename){
+        if(!(this.map)){
+            return;
+        }
+
+        canvas = $("#viewTextureCanvas");
+
+        if(canvas.length == 0){
+            canvas = $("<canvas></canvas>");
+            canvas.attr("id", "viewTextureCanvas");
+            $("body").append(canvas);
+        }
+
+        var texture = this.map.getTexture(texturename).imageData;
+
+        if(texture != null){
+            canvas[0].width = texture.width;
+            canvas[0].height = texture.height;
+
+            var context = canvas[0].getContext('2d');
+            context.putImageData(texture, 0, 0);
+        }
     }
 
     Game.prototype.loadPk4 = function(url){
@@ -76,10 +92,18 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
         });
     }
 
+    Game.prototype.updateMaterialLookup = function(deltaTime){
+        Material.LOOKUP_TABLE.time += deltaTime;
+    }
+
     Game.prototype.loop = function(deltaTime){
         var map = this.map;
+        var deltaSeconds = deltaTime / 1000.0;
         if(map != null){
             if(map.isLoaded){
+                this.updateMaterialLookup(deltaSeconds);
+                map.update(deltaSeconds);
+
                 map.calculateDrawBuffer(map.camera);
 
                 this.display.draw(map.drawBuffer, map.camera);
