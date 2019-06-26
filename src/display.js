@@ -12,6 +12,7 @@ struct MaterialStage {
     sampler2D map;
     highp vec2 translate;
     highp vec2 scale; 
+    highp float rotate;
 };
 `
 
@@ -129,13 +130,24 @@ var stageVertex = `#version 300 es
     out vec2 v_textureCoord;
     out vec3 v_normal;
 
+    void setTexture(){
+        float sinFactor = sin(uStage.rotate);
+        float cosFactor = cos(uStage.rotate);
+        float mid = 0.5;
+
+        v_textureCoord = a_textureCoord;
+
+        //TODO: rotation
+
+        v_textureCoord *= uStage.scale;
+        v_textureCoord += uStage.translate;
+    }
+
     void main(){
         vec4 position = worldTransform * vec4(a_position, 1.0);
         v_position = a_position;
 
-        v_textureCoord = a_textureCoord;
-        v_textureCoord *= uStage.scale;
-        v_textureCoord += uStage.translate;
+        setTexture();
 
         v_normal = normalize(a_normal);
 
@@ -326,6 +338,7 @@ function Display(canvas){
                 { name: "stageMap", glName: "uStage.map", type: "uniform" },
                 { name: "stageTranslate", glName: "uStage.translate", type: "uniform" },
                 { name: "stageScale", glName: "uStage.scale", type: "uniform" },
+                { name: "stageRotation", glName: "uStage.rotate", type: "uniform" }
             ]) 
         };
 
@@ -471,6 +484,7 @@ function Display(canvas){
                 // Set stage properties
                 gl.uniform2fv(program.stageTranslate, stage.translate);
                 gl.uniform2fv(program.stageScale, stage.scale);
+                gl.uniform1f(program.stageRotation, stage.rotation);
         
                 // Set the textures
                 var texture = stage.map.getGlTexture(gl);

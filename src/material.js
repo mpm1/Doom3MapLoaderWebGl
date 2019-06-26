@@ -206,6 +206,12 @@ var MaterialStage = function(){
         }
     }
 
+    function createUpdateFunction(name){
+        return function(file){
+            readUpdateFunction.call(this, file, "this." + name);
+        }
+    }
+
     function createVector2UpdateFunction(name){
         return function(file){
             readUpdateFunction.call(this, file, "this." + name + "[0]");
@@ -224,7 +230,8 @@ var MaterialStage = function(){
         "alphatest" : createSetNumberFunction("alphaTest"),
         "translate" : createVector2UpdateFunction("translate"),
         "scroll" : createVector2UpdateFunction("translate"),
-        "scale" : createVector2UpdateFunction("scale")
+        "scale" : createVector2UpdateFunction("scale"),
+        "rotate" : createUpdateFunction("rotate")
     }
 
     MaterialStage.prototype.init = function(){
