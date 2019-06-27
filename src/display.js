@@ -82,6 +82,7 @@ var lightVertex = `#version 300 es
     uniform mat4 projectionTransform;
 
     out vec3 v_position;
+    out vec3 v_eye_position;
     out vec2 v_textureCoord;
     out vec3 v_normal;
     out vec3 v_light;
@@ -89,6 +90,7 @@ var lightVertex = `#version 300 es
     void main(){
         vec4 position = worldTransform * vec4(a_position, 1.0);
         v_position = a_position;
+        v_eye_position = position.xyz;
 
         v_light = (worldTransform * vec4(uLight.center, 1.0)).xyz;
         v_textureCoord = a_textureCoord;
@@ -107,6 +109,7 @@ var lightFragment = `#version 300 es
 
     in vec3 v_light;
     in vec3 v_position;
+    in vec3 v_eye_position;
     in vec2 v_textureCoord;
     in vec3 v_normal;
 
@@ -118,36 +121,42 @@ var lightFragment = `#version 300 es
 
     ` + materialFunctions + `
 
-    vec4 calculateDiffuse(float nDotL, float power){
+    vec4 calculateDiffuse(float nDotL){
         vec4 color = getStageColor(v_textureCoord, uDiffuse);
         color.rgb *= uLight.color.rgb;
-        color.rgb *= nDotL * power * color.a;
+        color.rgb *= nDotL * color.a;
 
         return color;
     }
 
-    // TODO: calculate specular
-    vec4 calculateSpecular(vec3 n, float power){
-        vec4 color = getStageColor(v_textureCoord, uSpecular);
+    vec3 calculateSpecular(vec3 n){
+        vec4 textureColor = getStageColor(v_textureCoord, uSpecular);
+        float specular = textureColor.b * textureColor.a;
+        
+        vec3 eyeVec = normalize(-v_eye_position);
+        vec3 refVec = normalize(reflect(-v_light, n));
+        float eDotL = clamp(dot(eyeVec, refVec), 0.0, 1.0);
 
-        // TODO: calcualte based on the camera.
-        float eDotL = clamp(dot(vec3(0, 0, -1), normalize(v_light)), 0.0, 1.0);
+        specular *= eDotL;
 
-        color.rgb *= uLight.color.rgb;
-        color.rgb *= eDotL * power * color.a;
+        vec3 color = uLight.color.rgb * pow(specular, 100.0);
 
         return color;
     }
 
     void main(){
         vec3 n = normalize(v_normal);
+
         vec3 lightVec = uLight.center.xyz - v_position.xyz;
         float nDotL = clamp(dot(n, normalize(lightVec)), 0.0, 1.0);
+
         float power = 1.0 - clamp(length(lightVec / uLight.radius.xyz), 0.0, 1.0);
 
-        vec4 diffuse = calculateDiffuse(nDotL, power);
+        vec4 diffuse = calculateDiffuse(nDotL);
+        vec3 specular = calculateSpecular(n);
 
-        outColor = clamp(diffuse + calculateSpecular(n, 0.0), 0.0, 1.0);
+        outColor.a = diffuse.a;
+        outColor.rgb = clamp(diffuse.rgb + specular, 0.0, 1.0) * power;
     }
 `
 
