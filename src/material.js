@@ -344,7 +344,7 @@ var Material = function(){
     }
 
     function setNormalMapFunction(file, map){
-        var stage = map.normalStage;
+        var stage = this.normalStage;
         stage.map = map.getTexture(file.next());
     }
 
