@@ -13,7 +13,39 @@ struct MaterialStage {
     highp vec2 translate;
     highp vec2 scale; 
     mediump float rotation;
+    mediump float alphaTest;
 };
+`
+
+var materialFunctions = `
+    vec2 getTextureUV(vec2 inputUV, MaterialStage stage){
+        vec2 uv = mod(inputUV, 1.0);
+
+        uv *= stage.scale;
+        uv += stage.translate;
+
+        float sinFactor = sin(stage.rotation);
+        float cosFactor = cos(stage.rotation);
+        float mid = 0.5;
+
+        uv = vec2(
+            cosFactor * (uv.x - mid) + sinFactor * (uv.y - mid) + mid,
+            cosFactor * (uv.y - mid) - sinFactor * (uv.x - mid) + mid
+        );
+
+        return uv;
+    }
+
+    vec4 getStageColor(vec2 inputUV, MaterialStage stage){
+        vec2 uv = getTextureUV(inputUV, stage);
+        vec4 color = texture(stage.map, uv);
+
+        if(color.a < stage.alphaTest){
+            return vec4(0.0, 0.0, 0.0, 0.0);
+        }
+
+        return color;
+    }
 `
 
 var depthVertex = `#version 300 es
@@ -84,8 +116,10 @@ var lightFragment = `#version 300 es
 
     out vec4 outColor;
 
+    ` + materialFunctions + `
+
     vec4 calculateDiffuse(float nDotL, float power){
-        vec4 color = texture(uDiffuse.map, v_textureCoord);
+        vec4 color = getStageColor(v_textureCoord, uDiffuse);
         color.rgb *= uLight.color.rgb;
         color.rgb *= nDotL * power * color.a;
 
@@ -94,7 +128,7 @@ var lightFragment = `#version 300 es
 
     // TODO: calculate specular
     vec4 calculateSpecular(vec3 n, float power){
-        vec4 color = texture(uSpecular.map, v_textureCoord);
+        vec4 color = getStageColor(v_textureCoord, uSpecular);
 
         // TODO: calcualte based on the camera.
         float eDotL = clamp(dot(vec3(0, 0, -1), normalize(v_light)), 0.0, 1.0);
@@ -111,7 +145,9 @@ var lightFragment = `#version 300 es
         float nDotL = clamp(dot(n, normalize(lightVec)), 0.0, 1.0);
         float power = 1.0 - clamp(length(lightVec / uLight.radius.xyz), 0.0, 1.0);
 
-        outColor = clamp(calculateDiffuse(nDotL, power) + calculateSpecular(n, 0.0), 0.0, 1.0);
+        vec4 diffuse = calculateDiffuse(nDotL, power);
+
+        outColor = clamp(diffuse + calculateSpecular(n, 0.0), 0.0, 1.0);
     }
 `
 
@@ -150,28 +186,10 @@ var stageFragment = `#version 300 es
 
     out vec4 outColor;
 
-    vec2 setTexture(){
-        vec2 uv = mod(v_textureCoord, 1.0);
-
-        //uv *= uStage.scale;
-        uv += uStage.translate;
-
-        float sinFactor = sin(uStage.rotation);
-        float cosFactor = cos(uStage.rotation);
-        float mid = 0.5;
-
-        uv = vec2(
-            cosFactor * (uv.x - mid) + sinFactor * (uv.y - mid) + mid,
-            cosFactor * (uv.y - mid) - sinFactor * (uv.x - mid) + mid
-        );
-
-        return uv;
-    }
+    ` + materialFunctions + `
 
     void main(){
-        vec2 uv = setTexture();
-
-        outColor = texture(uStage.map, uv);
+        outColor = getStageColor(v_textureCoord, uStage);
     }
 `
 
@@ -326,8 +344,16 @@ function Display(canvas){
                 { name: "lightShadow", glName: "uLight.shadows", type: "uniform" },
 
                 { name: "diffuseMap", glName: "uDiffuse.map", type: "uniform" },
+                { name: "diffuseTranslate", glName: "uDiffuse.translate", type: "uniform" },
+                { name: "diffuseScale", glName: "uDiffuse.scale", type: "uniform" },
+                { name: "diffuseRotation", glName: "uDiffuse.rotation", type: "uniform" },
+                { name: "diffuseAlphaTest", glName: "uDiffuse.alphaTest", type: "uniform" },
 
                 { name: "specularMap", glName: "uSpecular.map", type: "uniform" },
+                { name: "specularTranslate", glName: "uSpecular.translate", type: "uniform" },
+                { name: "specularScale", glName: "uSpecular.scale", type: "uniform" },
+                { name: "specularRotation", glName: "uSpecular.rotation", type: "uniform" },
+                { name: "specularAlphaTest", glName: "uSpecular.alphaTest", type: "uniform" }
             ]),
             "stage" : createShaderProgram(gl, "stage", stageVertex, stageFragment, [
                 { name: "positionAttribute", glName: "a_position", type: "attribute" },
@@ -340,7 +366,8 @@ function Display(canvas){
                 { name: "stageMap", glName: "uStage.map", type: "uniform" },
                 { name: "stageTranslate", glName: "uStage.translate", type: "uniform" },
                 { name: "stageScale", glName: "uStage.scale", type: "uniform" },
-                { name: "stageRotation", glName: "uStage.rotation", type: "uniform" }
+                { name: "stageRotation", glName: "uStage.rotation", type: "uniform" },
+                { name: "stageAlphaTest", glName: "uStage.alphaTest", type: "uniform" }
             ]) 
         };
 
@@ -388,6 +415,13 @@ function Display(canvas){
         });
 
         gl.depthMask(false);
+    }
+
+    function setStageUniforms(prefix, program, gl, stage){
+        gl.uniform2fv(program[prefix + "Translate"], stage.translate);
+        gl.uniform2fv(program[prefix + "Scale"], stage.scale);
+        gl.uniform1f(program[prefix + "Rotation"], stage.rotate);
+        gl.uniform1f(program[prefix + "AlphaTest"], stage.alphaTest);
     }
 
     function drawLights(gl, drawBuffer, camera){
@@ -440,6 +474,8 @@ function Display(canvas){
                 gl.bindTexture(gl.TEXTURE_2D, texture);
 
                 // Set any properties
+                setStageUniforms("specular", program, gl, material.specularStage);
+                setStageUniforms("diffuse", program, gl, material.diffuseStage);
 
 
                 drawModel(gl, program, model);
@@ -484,9 +520,7 @@ function Display(canvas){
                 gl.colorMask(stage.maskRed, stage.maskGreen, stage.maskBlue, stage.maskAlpha);
 
                 // Set stage properties
-                gl.uniform2fv(program.stageTranslate, stage.translate);
-                gl.uniform2fv(program.stageScale, stage.scale);
-                gl.uniform1f(program.stageRotation, stage.rotate);
+                setStageUniforms("stage", program, gl, stage);
         
                 // Set the textures
                 var texture = stage.map.getGlTexture(gl);

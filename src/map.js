@@ -1130,7 +1130,7 @@ function Map(mapName, pakFile){
                 var material = brush.material;
 
                 if(material){
-                    if(material.translucent){
+                    if(!material.solid){
                         drawBuffer.transparentModels.push(brush);
                     }else{
                         drawBuffer.opaqueModels.push(brush);

@@ -227,7 +227,7 @@ var MaterialStage = function(){
         "maskblue" : createColorMaskFunction(0xFFFF00FF),
         "maskalpha" : createColorMaskFunction(0xFFFFFF00),
         "maskcolor" : createColorMaskFunction(0x000000FF),
-        "alphatest" : createSetNumberFunction("alphaTest"),
+        "alphatest" : createUpdateFunction("alphaTest"),
         "translate" : createVector2UpdateFunction("translate"),
         "scroll" : createVector2UpdateFunction("translate"),
         "scale" : createVector2UpdateFunction("scale"),
