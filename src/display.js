@@ -12,7 +12,7 @@ struct MaterialStage {
     sampler2D map;
     highp vec2 translate;
     highp vec2 scale; 
-    highp float rotate;
+    mediump float rotation;
 };
 `
 
@@ -116,39 +116,21 @@ var lightFragment = `#version 300 es
 `
 
 var stageVertex = `#version 300 es
-` + stageStruct + `
-
     in vec3 a_position;
     in vec2 a_textureCoord;
     in vec3 a_normal;
 
     uniform mat4 worldTransform;
     uniform mat4 projectionTransform;
-    uniform MaterialStage uStage;
 
     out vec3 v_position;
     out vec2 v_textureCoord;
     out vec3 v_normal;
 
-    void setTexture(){
-        float sinFactor = sin(uStage.rotate);
-        float cosFactor = cos(uStage.rotate);
-        float mid = 0.5;
-
-        v_textureCoord = a_textureCoord;
-
-        //TODO: rotation
-
-        v_textureCoord *= uStage.scale;
-        v_textureCoord += uStage.translate;
-    }
-
     void main(){
         vec4 position = worldTransform * vec4(a_position, 1.0);
         v_position = a_position;
-
-        setTexture();
-
+        v_textureCoord = a_textureCoord;
         v_normal = normalize(a_normal);
 
         gl_Position = projectionTransform * position;
@@ -168,8 +150,28 @@ var stageFragment = `#version 300 es
 
     out vec4 outColor;
 
+    vec2 setTexture(){
+        vec2 uv = mod(v_textureCoord, 1.0);
+
+        //uv *= uStage.scale;
+        uv += uStage.translate;
+
+        float sinFactor = sin(uStage.rotation);
+        float cosFactor = cos(uStage.rotation);
+        float mid = 0.5;
+
+        uv = vec2(
+            cosFactor * (uv.x - mid) + sinFactor * (uv.y - mid) + mid,
+            cosFactor * (uv.y - mid) - sinFactor * (uv.x - mid) + mid
+        );
+
+        return uv;
+    }
+
     void main(){
-        outColor = texture(uStage.map, v_textureCoord);
+        vec2 uv = setTexture();
+
+        outColor = texture(uStage.map, uv);
     }
 `
 
@@ -338,7 +340,7 @@ function Display(canvas){
                 { name: "stageMap", glName: "uStage.map", type: "uniform" },
                 { name: "stageTranslate", glName: "uStage.translate", type: "uniform" },
                 { name: "stageScale", glName: "uStage.scale", type: "uniform" },
-                { name: "stageRotation", glName: "uStage.rotate", type: "uniform" }
+                { name: "stageRotation", glName: "uStage.rotation", type: "uniform" }
             ]) 
         };
 
@@ -484,11 +486,10 @@ function Display(canvas){
                 // Set stage properties
                 gl.uniform2fv(program.stageTranslate, stage.translate);
                 gl.uniform2fv(program.stageScale, stage.scale);
-                gl.uniform1f(program.stageRotation, stage.rotation);
+                gl.uniform1f(program.stageRotation, stage.rotate);
         
                 // Set the textures
                 var texture = stage.map.getGlTexture(gl);
-
         
                 gl.activeTexture(gl.TEXTURE2);
                 gl.bindTexture(gl.TEXTURE_2D, texture);
