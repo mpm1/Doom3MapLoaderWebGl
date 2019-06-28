@@ -87,15 +87,17 @@ var lightVertex = `#version 300 es
     out vec3 v_normal;
     out vec3 v_lightPosition;
     out vec3 v_lightRadius;
+    out float v_rad;
 
     void main(){
         vec4 position = worldTransform * vec4(a_position, 1.0);
         v_position = position.xyz;
 
-        v_lightPosition = (worldTransform * vec4(uLight.center, 1.0)).xyz;
-        v_lightRadius = (normalTransform * vec4(uLight.radius.xyz, 0.0)).xyz;
+        v_lightPosition = vec3(worldTransform * vec4(uLight.center, 1.0));
+        v_lightRadius = vec3(normalTransform * vec4(uLight.radius.xyz, 0.0));
+        v_rad = max(max(uLight.radius.x, uLight.radius.y), uLight.radius.z);
         
-        v_normal = normalize((normalTransform * vec4(a_normal, 0.0)).xyz);
+        v_normal = normalize(vec3(normalTransform * vec4(a_normal, 0.0)));
 
         v_textureCoord = a_textureCoord;
 
@@ -115,6 +117,7 @@ var lightFragment = `#version 300 es
     in vec3 v_position;
     in vec2 v_textureCoord;
     in vec3 v_normal;
+    in float v_rad;
 
     uniform Light uLight;
     uniform MaterialStage uDiffuse;
@@ -134,17 +137,19 @@ var lightFragment = `#version 300 es
         return color;
     }
 
-    vec3 calculateSpecular(vec3 n){
+    vec3 calculateSpecular(vec3 n, vec3 lightAngle){
         vec4 textureColor = getStageColor(v_textureCoord, uSpecular);
         float specular = textureColor.b * textureColor.a;
         
-        vec3 eyeVec = normalize(-v_position);
-        vec3 refVec = normalize(reflect(eyeVec, n));
-        float eDotL = 1.0 - clamp(dot(eyeVec, refVec), 0.0, 1.0);
+        vec3 eyeVec = normalize(vec3(v_position.xy, -v_position.z));
+        vec3 refVec = normalize(reflect(-lightAngle, n));
+        float eDotL = clamp(dot(eyeVec, refVec), 0.0, 1.0);
+
 
         specular *= eDotL;
 
-        vec3 color = uLight.color.rgb * pow(specular, 100.0);
+        // TODO: look up how to set the needed specular values.
+        vec3 color = clamp(uLight.color.rgb * pow(specular, 100.0), 0.0, 1.0);
 
         return color;
     }
@@ -153,14 +158,15 @@ var lightFragment = `#version 300 es
         vec3 n = normalize(v_normal);
 
         vec3 lightVec =  v_lightPosition.xyz - v_position.xyz;
-        float power = 1.0 - clamp(length(lightVec / v_lightRadius.xyz), 0.0, 1.0);
+        float power = 1.0 - clamp(length(lightVec) / v_rad, 0.0, 1.0);
 
         vec4 diffuse = calculateDiffuse(normalize(lightVec), n);
-        vec3 specular = vec3(0.0, 0.0, 0.0);//calculateSpecular(n);
+        vec3 specular = calculateSpecular(n, lightVec);
 
         outColor.a = diffuse.a;
-        outColor.rgb = clamp(diffuse.rgb + specular, 0.0, 1.0) * power;
-        outColor.g = power;
+        outColor.rgb = (diffuse.rgb + specular) * power;
+        
+        //outColor.rgb = ((n + 1.0) * 0.5) * 0.1;
     }
 `
 
@@ -334,7 +340,7 @@ function Display(canvas){
         gl.uniform1i(program.mapUniform, 0);
 
         if(program.setsNormalTransform){
-            gl.uniformMatrix4fv(program.normalMatrixUniform, true, camera.transform.matrix);
+            gl.uniformMatrix4fv(program.normalMatrixUniform, false, camera.transform.normalMatrix); 
         }
     }
 

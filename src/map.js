@@ -80,6 +80,8 @@ var Transform = function(position, rotation, scale){
         var invUp = new Float32Array(invMatrix.buffer, 4 * 4, 3);
         var invBack = new Float32Array(invMatrix.buffer, 4 * 8, 3);
 
+        var normalMatrix = new Matrix4();
+
         Object.defineProperties(this, 
         {
             "position": {
@@ -122,6 +124,7 @@ var Transform = function(position, rotation, scale){
         function validateInverseMatrix(){
             if(this.stale){
                 inverseTransformationMatrix(matrix, invMatrix);
+                Matrix4.transpose(matrix, normalMatrix);
                 this.stale = false;
             }
         }
@@ -149,6 +152,14 @@ var Transform = function(position, rotation, scale){
                     validateInverseMatrix.call(this);
                     
                     return invRight;
+                }
+            },
+            "normalMatrix": {
+                writeable: false,
+                get: function(){
+                    validateInverseMatrix.call(this);
+
+                    return normalMatrix;
                 }
             }
         });

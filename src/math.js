@@ -276,6 +276,30 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
         return Matrix4.multiplyMatrix(matrix, bufferMatrix, outMatrix);
     }
 
+    Matrix4.transpose = function(matrix, outMatrix){
+        outMatrix[0] = matrix[0];
+        outMatrix[1] = matrix[4];
+        outMatrix[2] = matrix[8];
+        outMatrix[3] = matrix[12];
+
+        outMatrix[4] = matrix[1];
+        outMatrix[5] = matrix[5];
+        outMatrix[6] = matrix[9];
+        outMatrix[7] = matrix[13];
+
+        outMatrix[8] = matrix[2];
+        outMatrix[9] = matrix[6];
+        outMatrix[10] = matrix[10];
+        outMatrix[11] = matrix[14];
+
+        outMatrix[12] = matrix[3];
+        outMatrix[13] = matrix[7];
+        outMatrix[14] = matrix[11];
+        outMatrix[15] = matrix[15];
+
+        return outMatrix;
+    }
+
     Matrix4.identity = function(outMatrix){
         outMatrix.fill(0);
         outMatrix[0] = outMatrix[5] = outMatrix[10] = outMatrix[15] = 1.0;
