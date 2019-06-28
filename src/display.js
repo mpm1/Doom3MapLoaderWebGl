@@ -141,7 +141,7 @@ var lightFragment = `#version 300 es
         vec4 textureColor = getStageColor(v_textureCoord, uSpecular);
         float specular = textureColor.b * textureColor.a;
         
-        vec3 eyeVec = normalize(vec3(v_position.xy, -v_position.z));
+        vec3 eyeVec = normalize(-v_position);
         vec3 refVec = normalize(reflect(-lightAngle, n));
         float eDotL = clamp(dot(eyeVec, refVec), 0.0, 1.0);
 

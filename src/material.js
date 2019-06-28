@@ -87,13 +87,13 @@ const DEFAULT_DIFFUSE = new Texture();
 DEFAULT_DIFFUSE.loadFromUrl("./imgs/black.png");
 
 const DEFAULT_MAP = new Texture();
-DEFAULT_DIFFUSE.loadFromUrl("./imgs/black.png");
+DEFAULT_MAP.loadFromUrl("./imgs/black.png");
 
 const DEFAULT_SPECULAR = new Texture();
 DEFAULT_SPECULAR.loadFromUrl("./imgs/black.png");
 
 const DEFAULT_NORMAL = new Texture();
-DEFAULT_DIFFUSE.loadFromUrl("./imgs/blue.png");
+DEFAULT_NORMAL.loadFromUrl("./imgs/blue.png");
 
 // Blend modes using webgl values
 const BLEND_MODES = {
@@ -323,6 +323,7 @@ var Material = function(){
         if(this.specularStage == null){
             var spec = new MaterialStage();
             spec.blend.customMode = "specularmap";
+            spec.map = DEFAULT_SPECULAR;
 
             this.specularStage = spec;
         }
@@ -335,9 +336,10 @@ var Material = function(){
 
         this.specularStage = stage;
 
-        if(this.specularStage == null){
+        if(this.diffuseStage == null){
             var diff = new MaterialStage();
             diff.blend.customMode = "diffusemap";
+            diff.map = DEFAULT_DIFFUSE;
 
             this.diffuseStage = diff;
         }
@@ -408,6 +410,7 @@ var Material = function(){
                         if(stage.specularStage == null){
                             var spec = new MaterialStage();
                             spec.blend.customMode = "specularmap";
+                            spec.map = DEFAULT_SPECULAR;
                 
                             this.specularStage = spec;
                         }
@@ -419,8 +422,9 @@ var Material = function(){
                         if(stage.diffuseStage == null){
                             var diff = new MaterialStage();
                             diff.blend.customMode = "diffusemap";
+                            diff.map = DEFAULT_DIFFUSE;
                 
-                            this.specularStage = diff;
+                            this.diffuseStage = diff;
                         }
                         break;
 
