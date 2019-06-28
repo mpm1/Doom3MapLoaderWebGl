@@ -80,21 +80,24 @@ var lightVertex = `#version 300 es
     uniform Light uLight;
     uniform mat4 worldTransform;
     uniform mat4 projectionTransform;
+    uniform mat4 normalTransform;
 
     out vec3 v_position;
-    out vec3 v_eye_position;
     out vec2 v_textureCoord;
     out vec3 v_normal;
-    out vec3 v_light;
+    out vec3 v_lightPosition;
+    out vec3 v_lightRadius;
 
     void main(){
         vec4 position = worldTransform * vec4(a_position, 1.0);
-        v_position = a_position;
-        v_eye_position = position.xyz;
+        v_position = position.xyz;
 
-        v_light = (worldTransform * vec4(uLight.center, 1.0)).xyz;
+        v_lightPosition = (worldTransform * vec4(uLight.center, 1.0)).xyz;
+        v_lightRadius = (normalTransform * vec4(uLight.radius.xyz, 0.0)).xyz;
+        
+        v_normal = normalize((normalTransform * vec4(a_normal, 0.0)).xyz);
+
         v_textureCoord = a_textureCoord;
-        v_normal = normalize(a_normal);
 
         gl_Position = projectionTransform * position;
     }
@@ -107,9 +110,9 @@ var lightFragment = `#version 300 es
 
     ` + lightStruct + `
 
-    in vec3 v_light;
+    in vec3 v_lightPosition;
+    in vec3 v_lightRadius;
     in vec3 v_position;
-    in vec3 v_eye_position;
     in vec2 v_textureCoord;
     in vec3 v_normal;
 
@@ -121,7 +124,9 @@ var lightFragment = `#version 300 es
 
     ` + materialFunctions + `
 
-    vec4 calculateDiffuse(float nDotL){
+    vec4 calculateDiffuse(vec3 lightAngle, vec3 n){
+        float nDotL = clamp(dot(n, lightAngle), 0.0, 1.0);
+
         vec4 color = getStageColor(v_textureCoord, uDiffuse);
         color.rgb *= uLight.color.rgb;
         color.rgb *= nDotL * color.a;
@@ -133,9 +138,9 @@ var lightFragment = `#version 300 es
         vec4 textureColor = getStageColor(v_textureCoord, uSpecular);
         float specular = textureColor.b * textureColor.a;
         
-        vec3 eyeVec = normalize(-v_eye_position);
-        vec3 refVec = normalize(reflect(-v_light, n));
-        float eDotL = clamp(dot(eyeVec, refVec), 0.0, 1.0);
+        vec3 eyeVec = normalize(-v_position);
+        vec3 refVec = normalize(reflect(eyeVec, n));
+        float eDotL = 1.0 - clamp(dot(eyeVec, refVec), 0.0, 1.0);
 
         specular *= eDotL;
 
@@ -147,16 +152,15 @@ var lightFragment = `#version 300 es
     void main(){
         vec3 n = normalize(v_normal);
 
-        vec3 lightVec = uLight.center.xyz - v_position.xyz;
-        float nDotL = clamp(dot(n, normalize(lightVec)), 0.0, 1.0);
+        vec3 lightVec =  v_lightPosition.xyz - v_position.xyz;
+        float power = 1.0 - clamp(length(lightVec / v_lightRadius.xyz), 0.0, 1.0);
 
-        float power = 1.0 - clamp(length(lightVec / uLight.radius.xyz), 0.0, 1.0);
-
-        vec4 diffuse = calculateDiffuse(nDotL);
-        vec3 specular = calculateSpecular(n);
+        vec4 diffuse = calculateDiffuse(normalize(lightVec), n);
+        vec3 specular = vec3(0.0, 0.0, 0.0);//calculateSpecular(n);
 
         outColor.a = diffuse.a;
         outColor.rgb = clamp(diffuse.rgb + specular, 0.0, 1.0) * power;
+        outColor.g = power;
     }
 `
 
@@ -274,6 +278,7 @@ function Display(canvas){
 
         program.setsTexture = false;
         program.setsNormal = false;
+        program.setsNormalTransform = false;
 
         gl.useProgram(program);
 
@@ -287,6 +292,8 @@ function Display(canvas){
                     program.setsTexture = true;
                 }else if(propName.name == "normalAttribute"){
                     program.setsNormal = true;
+                }else if(propName.name == "normalMatrixUniform"){
+                    program.setsNormalTransform = true;
                 }
 
                 switch(propName.type){
@@ -325,6 +332,10 @@ function Display(canvas){
         gl.uniformMatrix4fv(program.modelMatrixUniform, false, camera.transform.invMatrix);
         gl.uniformMatrix4fv(program.viewMatrixUniform, false, camera.projectionMatrix);
         gl.uniform1i(program.mapUniform, 0);
+
+        if(program.setsNormalTransform){
+            gl.uniformMatrix4fv(program.normalMatrixUniform, true, camera.transform.matrix);
+        }
     }
 
     Display.prototype.init = function(canvas){
@@ -346,6 +357,7 @@ function Display(canvas){
 
                 { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
                 { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
+                { name: "normalMatrixUniform", glName: "normalTransform", type: "uniform" },
 
                 { name: "lightCenter", glName: "uLight.center", type: "uniform" },
                 { name: "lightRadius", glName: "uLight.radius", type: "uniform" },
