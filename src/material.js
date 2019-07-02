@@ -38,6 +38,8 @@ var Texture = function(){
 
             _this.imageData = context.getImageData(0, 0, img.width, img.height);
         }
+
+        img.src = url;
     }
 
     Texture.prototype.load = function(tgaData){

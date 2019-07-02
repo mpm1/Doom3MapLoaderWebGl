@@ -956,10 +956,10 @@ function Map(mapName, pakFile){
         portalMinBuffer[3] = 1.0;
 
         // portal screen bounds
-        var left = 8e+26;
-        var top = 8e+26;
-        var right = -8e+26;
-        var bottom = -8e+26;
+        var left = frustrumLeft;
+        var top = frustrumTop;
+        var right = frustrumRight;
+        var bottom = frustrumBottom
 
         // Data holders
         var point, absDiv, outArea;
@@ -975,14 +975,14 @@ function Map(mapName, pakFile){
         }
 
         // Check if the portal is behind the camera
-        if(portalMinBuffer[2] > camera.near){
+        if(portalMinBuffer[2] > -camera.near){
             // This means that the entire portal bounding box is behind the camera.
             return;
         }
 
-        if(portalMaxBuffer[2] > camera.near){
+        if(portalMaxBuffer[2] > -camera.near){
             // Move the max buffer close to the camera if needed.
-            portalMaxBuffer[2] = camera.near;
+            portalMaxBuffer[2] = -camera.near;
         }
 
         // Find the screen max bounds
@@ -1030,26 +1030,27 @@ function Map(mapName, pakFile){
         }
 
         // Check if our portal is outside the visible area of the screen.
-        if(left > frustrumRight || top > frustrumBottom || right < frustrumLeft || bottom < frustrumTop){
-            return;
-        }
+        // NOTE: Due to error propigation I was getting too many false positives here. This caused blinking.
+        //if(left > frustrumRight || top > frustrumBottom || right < frustrumLeft || bottom < frustrumTop){
+        //    return;
+        //}
 
         // Create the new frustrum
-        if(left < frustrumLeft){
-            left = frustrumLeft;
-        }
+        //if(left < frustrumLeft){
+        //    left = frustrumLeft;
+        //}
 
-        if(top < frustrumTop){
-            top = frustrumTop;
-        }
+        //if(top < frustrumTop){
+        //    top = frustrumTop;
+        //}
 
-        if(right > frustrumRight){
-            right = frustrumRight;
-        }
+        //if(right > frustrumRight){
+        //    right = frustrumRight;
+        //}
 
-        if(bottom > frustrumBottom){
-            bottom = frustrumBottom;
-        }
+        //if(bottom > frustrumBottom){
+        //    bottom = frustrumBottom;
+        //}
 
         // Go through the portal
         if(area == portal.positive){
@@ -1195,7 +1196,7 @@ function Map(mapName, pakFile){
         if(area != null){
             addAreaToDrawBuffer(area, this.drawBuffer, camera);
 
-            readChildAreas.call(this, area, this.drawBuffer, camera, -1.0, -1.0, 1.0, 1.0);
+            readChildAreas.call(this, area, this.drawBuffer, camera, -1.1, -1.1, 1.1, 1.1);
         }
     }
 

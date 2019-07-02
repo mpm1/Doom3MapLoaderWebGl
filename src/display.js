@@ -139,7 +139,7 @@ var lightFragment = `#version 300 es
 
     vec3 calculateSpecular(vec3 n, vec3 lightAngle){
         vec4 textureColor = getStageColor(v_textureCoord, uSpecular);
-        float specular = textureColor.b * textureColor.a;
+        float specular = textureColor.r;
         
         vec3 eyeVec = normalize(-v_position);
         vec3 refVec = normalize(reflect(-lightAngle, n));
