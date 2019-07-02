@@ -267,7 +267,7 @@ var Light = function(){
         this.color = new Vector3(1, 1, 1);
         this.shadows = true;
         this.areas = [];
-        this.bounds = new Float32Array(6);
+        this.bounds = new Float32Array(9);
         this.scissor = new Float32Array(4);
 
         Object.defineProperties(this, {
@@ -324,6 +324,14 @@ var Light = function(){
         bounds[5] = center[2] + radius[2];
 
         return bounds;
+    }
+
+    Light.prototype.boundsIntersects = function(bounds){
+        var check = this.bounds;        
+
+        return (Math.abs(bounds[0] - check[0]) * 2.0 < (bounds[3] - bounds[0] + check[3] - check[0])) &&
+            (Math.abs(bounds[1] - check[1]) * 2.0 < (bounds[4] - bounds[1] + check[4] - check[1])) &&
+            (Math.abs(bounds[2] - check[2]) * 2.0 < (bounds[5] - bounds[2] + check[5] - check[2]));
     }
 
     /**
@@ -466,6 +474,15 @@ var Brush = function(){
     Brush.prototype.draw = function(display){
         display.draw(this.vertecies, this.polygons, this.material)
     }
+
+    Brush.prototype.intersects = function(bounds){
+        var check = this.bounds;        
+
+        return (Math.abs(bounds[0] - check[0]) * 2.0 < (bounds[3] - bounds[0] + check[3] - check[0])) &&
+            (Math.abs(bounds[1] - check[1]) * 2.0 < (bounds[4] - bounds[1] + check[4] - check[1])) &&
+            (Math.abs(bounds[2] - check[2]) * 2.0 < (bounds[5] - bounds[2] + check[5] - check[2]));
+    }
+
     Brush.prototype.parse = function(file, map){
         var materialName = file.nextString();
         var vertCount = parseInt(file.next());
@@ -1170,8 +1187,9 @@ function Map(mapName, pakFile){
                                 drawBuffer.lights[lightName] = light;
                             }
 
-                            //TODO: find if the brush is affected by the light
-                            light.models.push(brush);
+                            //if(light.light.boundsIntersects(brush.bounds)){
+                                light.models.push(brush);
+                            //}
                         }
                     }
                 }
