@@ -160,6 +160,9 @@ var lightFragment = `#version 300 es
 
         vec3 lightVec =  v_lightPosition.xyz - v_position.xyz;
         float power = 1.0 - clamp(length(lightVec) / v_rad, 0.0, 1.0);
+        if(power > 0.0){
+            power = 1.0;
+        }
 
         vec4 diffuse = calculateDiffuse(normalize(lightVec), n);
         vec3 specular = calculateSpecular(n, lightVec);

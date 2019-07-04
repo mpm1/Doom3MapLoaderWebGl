@@ -359,6 +359,67 @@ var Light = function(){
             }
         }
     }
+
+    let scissorUpperRight = new Vector3();
+    let scissorCenter = new Vector3();
+    /**
+     * Calculates the scissor window for specific bounds based on the light and the current camera.
+     */
+    Light.prototype.getScissorWindow = function(camera, outBuffer){
+        var r = Math.max(this.radius[0], this.radius[1], this.radius[2]);
+        var center = this.transform.position;
+        var up = camera.transform.up;
+        var right = camera.transform.right;
+        var mvMatrix = camera.transform.invMatrix;
+        var pMatrix = camera.projectionMatrix;
+
+        // Calculate the light sides
+        scissorCenter[0] = center[0];
+        scissorCenter[1] = center[1];
+        scissorCenter[2] = center[2];
+        scissorCenter[3] = 1.0;
+        Matrix4.multiplyVector(mvMatrix, scissorCenter, scissorCenter);
+
+        // Get the plane closest to the camera for the light.
+        scissorCenter[2] = Math.min(scissorCenter[2] + r, -camera.near);
+
+        scissorUpperRight[0] = scissorCenter[0] + r;
+        scissorUpperRight[1] = scissorCenter[1] + r;
+        scissorUpperRight[2] = scissorCenter[2];
+        scissorUpperRight[3] = 1.0;
+
+        // Project the points
+        Matrix4.multiplyVector(pMatrix, scissorCenter, scissorCenter);
+        Matrix4.multiplyVector(pMatrix, scissorUpperRight, scissorUpperRight);
+
+        // Convert to normal space
+        scissorUpperRight[0] = scissorUpperRight[0] / scissorUpperRight[3];
+        scissorUpperRight[1] = scissorUpperRight[1] / scissorUpperRight[3];
+        scissorCenter[0] = scissorCenter[0] / scissorCenter[3];
+        scissorCenter[1] = scissorCenter[1] / scissorCenter[3];
+
+        // Set the screen coordiates
+        outBuffer[0] = scissorCenter[0] - (scissorUpperRight[0] - scissorCenter[0]);
+        outBuffer[1] = scissorCenter[1] - (scissorUpperRight[1] - scissorCenter[1]);
+        outBuffer[2] = scissorUpperRight[0] - outBuffer[0];
+        outBuffer[3] = scissorUpperRight[1] - outBuffer[1];
+
+        // Check to see if the light is even visible
+        if (outBuffer[2] <= 0.0 || outBuffer[3] <= 0.0) {
+            return null
+        }else{
+            outBuffer[0] = Math.max(Math.min(outBuffer[0], 1), -1);
+            outBuffer[1] = Math.max(Math.min(outBuffer[1], 1), -1);
+            outBuffer[2] = Math.min(outBuffer[2], 2.0) * 0.5;
+            outBuffer[3] = Math.min(outBuffer[3], 2.0) * 0.5;
+        }
+
+        // Set to 0, 1 space screen coordinates
+        outBuffer[0] = (outBuffer[0] + 1.0) * 0.5;
+        outBuffer[1] = (outBuffer[1] + 1.0) * 0.5;
+
+        return outBuffer;
+    }
 }
 
 var Area = function(){
@@ -893,7 +954,7 @@ function Map(mapName, pakFile){
             areas: {}
         }
 
-        this.camera.setPerspective(80.0, 16.0 / 9.0, 0.1, 2000.0);
+        this.camera.setPerspective(80.0, 16.0 / 9.0, 1.0, 2000.0);
     }
 
     /**
@@ -1094,62 +1155,6 @@ function Map(mapName, pakFile){
         }
     }
 
-    var scissorRight = new Vector3();
-    var scissorUp = new Vector3();
-    function getScissorWindow(light, camera, outBuffer){
-        var r = Math.max(light.radius[0], light.radius[1], light.radius[2]);
-        var center = light.transform.position;
-        var up = camera.transform.up;
-        var right = camera.transform.right;
-        var mvMatrix = camera.transform.invMatrix;
-        var pMatrix = camera.projectionMatrix;
-
-        scissorRight[0] = center[0] + (right[0] * r);  
-        scissorRight[1] = center[1] + (right[1] * r); 
-        scissorRight[2] = center[2] + (right[2] * r);  
-        scissorRight[3] = 1.0;  
-        
-        scissorUp[0] = center[0] + (up[0] * r);  
-        scissorUp[1] = center[1] + (up[1] * r); 
-        scissorUp[2] = center[2] + (up[2] * r);  
-        scissorUp[3] = 1.0; 
-
-        // Calculate the light sides
-        Matrix4.multiplyVector(mvMatrix, scissorRight, scissorRight);
-        Matrix4.multiplyVector(mvMatrix, scissorUp, scissorUp);
-
-        // Handle light behind the camera
-        scissorRight[2] = Math.min(scissorRight[2], -camera.near);
-        scissorUp[2] = Math.min(scissorUp[2], -camera.near);
-
-        // Project the points
-        Matrix4.multiplyVector(pMatrix, scissorRight, scissorRight);
-        Matrix4.multiplyVector(pMatrix, scissorUp, scissorUp);
-
-        // Convert to screen coordinates
-        scissorRight[0] = scissorRight[0] / scissorRight[3];
-        scissorRight[1] = scissorRight[1] / scissorRight[3];
-        scissorUp[0] = scissorUp[0] / scissorUp[3];
-        scissorUp[1] = scissorUp[1] / scissorUp[3];
-
-        // Set the screen coordiates
-        outBuffer[0] = scissorUp[0] - (scissorRight[0] - scissorUp[0]);
-        outBuffer[1] = scissorRight[1] - (scissorUp[1] - scissorRight[1]);
-        outBuffer[2] = scissorRight[0] - outBuffer[0];
-        outBuffer[3] = scissorUp[1] - outBuffer[1];
-
-        // Check to see if the light is even visible
-        if (outBuffer[2] <= 0.0 || outBuffer[3] <= 0.0) {
-            return null
-        }
-
-        // Set to 0, 1 space screen coordinates
-        outBuffer[0] = (outBuffer[0] + 1.0) * 0.5;
-        outBuffer[1] = (outBuffer[1] + 1.0) * 0.5;
-
-        return outBuffer;
-    }
-
     function addAreaToDrawBuffer(area, drawBuffer, camera){
         if(!drawBuffer.areas.hasOwnProperty(area.name)){
             drawBuffer.areas[area.name] = area;
@@ -1174,9 +1179,10 @@ function Map(mapName, pakFile){
                             var light = drawBuffer.lights[lightName];
 
                             if(!light){
+                                var selectedLight = lights[lightName];
                                 light = {
-                                    light: lights[lightName],
-                                    scissor: getScissorWindow(lights[lightName], camera, lights[lightName].scissor),
+                                    light: selectedLight,
+                                    scissor: selectedLight.getScissorWindow(camera, selectedLight.scissor),
                                     models: []
                                 };
 
