@@ -43,8 +43,8 @@ var Texture = function(){
     }
 
     Texture.prototype.load = function(tgaData){
-        var tga = new TGA();
-        tga.load(tgaData);
+        var tga = new TgaLoader();
+        tga.load(new Uint8Array(tgaData));
 
         this.imageData = tga.getImageData();
     }

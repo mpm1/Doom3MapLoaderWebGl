@@ -22,6 +22,7 @@ var materialFunctions = `
         vec2 uv = mod(inputUV, 1.0);
 
         uv *= stage.scale;
+
         uv += stage.translate;
 
         float sinFactor = sin(stage.rotation);
