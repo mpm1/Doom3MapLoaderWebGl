@@ -10,6 +10,10 @@ function degreeToRadins(degrees){
     return (degrees * Math.PI) / 180.0;
 }
 
+function clamp(value, min, max){
+    return Math.min(Math.max(value, min), max);
+}
+
 var Vector3 = function(x, y, z){
     return result = new Float32Array([x, y, z, 1.0]);
 }

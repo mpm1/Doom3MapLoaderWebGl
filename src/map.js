@@ -329,6 +329,13 @@ var Light = function(){
     Light.prototype.boundsIntersects = function(bounds){
         var check = this.bounds;        
 
+        return !(bounds[0] > check[3] ||
+                bounds[1] > check[4] ||
+                bounds[2] > check[5] ||
+                bounds[3] < check[0] ||
+                bounds[4] < check[1] ||
+                bounds[5] < check[2])
+
         return (Math.abs(bounds[0] - check[0]) * 2.0 < (bounds[3] - bounds[0] + check[3] - check[0])) &&
             (Math.abs(bounds[1] - check[1]) * 2.0 < (bounds[4] - bounds[1] + check[4] - check[1])) &&
             (Math.abs(bounds[2] - check[2]) * 2.0 < (bounds[5] - bounds[2] + check[5] - check[2]));
@@ -380,6 +387,11 @@ var Light = function(){
         scissorCenter[3] = 1.0;
         Matrix4.multiplyVector(mvMatrix, scissorCenter, scissorCenter);
 
+        if(scissorCenter[2] - r > -camera.near){
+            // The light is outsize of our near and far planes.
+            return null;
+        }
+
         // Get the plane closest to the camera for the light.
         scissorCenter[2] = Math.min(scissorCenter[2] + r, -camera.near);
 
@@ -408,8 +420,8 @@ var Light = function(){
         if (outBuffer[2] <= 0.0 || outBuffer[3] <= 0.0) {
             return null
         }else{
-            outBuffer[0] = Math.max(Math.min(outBuffer[0], 1), -1);
-            outBuffer[1] = Math.max(Math.min(outBuffer[1], 1), -1);
+            outBuffer[0] = clamp(outBuffer[0], -1, 1);
+            outBuffer[1] = clamp(outBuffer[1], -1, 1);
             outBuffer[2] = Math.min(outBuffer[2], 2.0) * 0.5;
             outBuffer[3] = Math.min(outBuffer[3], 2.0) * 0.5;
         }
@@ -1176,26 +1188,29 @@ function Map(mapName, pakFile){
 
                     if(material.diffuseStage != null){
                         for(var lightName in lights){
-                            var light = drawBuffer.lights[lightName];
+                            var selectedLight = lights[lightName];
 
-                            if(!light){
-                                var selectedLight = lights[lightName];
-                                light = {
-                                    light: selectedLight,
-                                    scissor: selectedLight.getScissorWindow(camera, selectedLight.scissor),
-                                    models: []
-                                };
+                            if(selectedLight.boundsIntersects(brush.bounds)){
+                                var light = drawBuffer.lights[lightName];
 
-                                if(light.scissor == null){
-                                    break;
+                                if(!light){
+                                    // Add the light to the scene table.
+
+                                    light = {
+                                        light: selectedLight,
+                                        scissor: selectedLight.getScissorWindow(camera, selectedLight.scissor),
+                                        models: []
+                                    };
+
+                                    if(light.scissor == null){
+                                        continue;
+                                    }
+
+                                    drawBuffer.lights[lightName] = light;
                                 }
 
-                                drawBuffer.lights[lightName] = light;
-                            }
-
-                            //if(light.light.boundsIntersects(brush.bounds)){
                                 light.models.push(brush);
-                            //}
+                            }
                         }
                     }
                 }
