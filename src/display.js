@@ -478,12 +478,16 @@ function Display(canvas){
         for(key in drawBuffer.lights){
             light = drawBuffer.lights[key];
 
+            if(light.scissor == null){
+                continue;
+            }
+
             // Set the light viewing information
             gl.scissor(
-                light.scissor[0] * screenSize[0],
-                light.scissor[1] * screenSize[1],
-                light.scissor[2] * screenSize[0],
-                light.scissor[3] * screenSize[1]
+                Math.floor(light.scissor[0] * screenSize[0]),
+                Math.floor(light.scissor[1] * screenSize[1]),
+                Math.ceil(light.scissor[2] * screenSize[0]),
+                Math.ceil(light.scissor[3] * screenSize[1])
             );
 
             // Set the light information

@@ -334,11 +334,7 @@ var Light = function(){
                 bounds[2] > check[5] ||
                 bounds[3] < check[0] ||
                 bounds[4] < check[1] ||
-                bounds[5] < check[2])
-
-        return (Math.abs(bounds[0] - check[0]) * 2.0 < (bounds[3] - bounds[0] + check[3] - check[0])) &&
-            (Math.abs(bounds[1] - check[1]) * 2.0 < (bounds[4] - bounds[1] + check[4] - check[1])) &&
-            (Math.abs(bounds[2] - check[2]) * 2.0 < (bounds[5] - bounds[2] + check[5] - check[2]));
+                bounds[5] < check[2]);
     }
 
     /**
@@ -367,7 +363,10 @@ var Light = function(){
         }
     }
 
-    let scissorUpperRight = new Vector3();
+    let scissorUp = new Vector3();
+    let scissorRight = new Vector3();
+    let scissorDown = new Vector3();
+    let scissorLeft = new Vector3();
     let scissorCenter = new Vector3();
     /**
      * Calculates the scissor window for specific bounds based on the light and the current camera.
@@ -375,8 +374,8 @@ var Light = function(){
     Light.prototype.getScissorWindow = function(camera, outBuffer){
         var r = Math.max(this.radius[0], this.radius[1], this.radius[2]);
         var center = this.transform.position;
-        var up = camera.transform.up;
-        var right = camera.transform.right;
+        var maxZ = -camera.near;
+        var minZ = -camera.far;
         var mvMatrix = camera.transform.invMatrix;
         var pMatrix = camera.projectionMatrix;
 
@@ -387,43 +386,61 @@ var Light = function(){
         scissorCenter[3] = 1.0;
         Matrix4.multiplyVector(mvMatrix, scissorCenter, scissorCenter);
 
-        if(scissorCenter[2] - r > -camera.near){
-            // The light is outsize of our near and far planes.
+        if(scissorCenter[2] - r > maxZ){
+            // The light is outside of our near plane.
             return null;
         }
 
-        // Get the plane closest to the camera for the light.
-        scissorCenter[2] = Math.min(scissorCenter[2] + r, -camera.near);
+        // Make sure the center is in front of the camera
+        if(scissorCenter[2] > maxZ){
+            scissorCenter[2] = maxZ;
+        }
 
-        scissorUpperRight[0] = scissorCenter[0] + r;
-        scissorUpperRight[1] = scissorCenter[1] + r;
-        scissorUpperRight[2] = scissorCenter[2];
-        scissorUpperRight[3] = 1.0;
+        // Calculate planes for each side.
+        scissorUp[0] = 0.0;
+        scissorUp[1] = 1.0;
+        scissorUp[2] = 0.0;
+        scissorUp[3] = -scissorCenter[1] - r
+
+        scissorDown[0] = 0.0;
+        scissorDown[1] = -1.0;
+        scissorDown[2] = 0.0;
+        scissorDown[3] = -scissorCenter[1] - r
+
+        scissorRight[0] = 1.0;
+        scissorRight[1] = 0.0;
+        scissorRight[2] = 0.0;
+        scissorRight[3] = -scissorCenter[0] - r
+
+        scissorLeft[0] = -1.0;
+        scissorLeft[1] = 0.0;
+        scissorLeft[2] = 0.0;
+        scissorLeft[3] = -scissorCenter[0] - r
 
         // Project the points
-        Matrix4.multiplyVector(pMatrix, scissorCenter, scissorCenter);
-        Matrix4.multiplyVector(pMatrix, scissorUpperRight, scissorUpperRight);
-
-        // Convert to normal space
-        scissorUpperRight[0] = scissorUpperRight[0] / scissorUpperRight[3];
-        scissorUpperRight[1] = scissorUpperRight[1] / scissorUpperRight[3];
-        scissorCenter[0] = scissorCenter[0] / scissorCenter[3];
-        scissorCenter[1] = scissorCenter[1] / scissorCenter[3];
+        Matrix4.multiplyVector(pMatrix, scissorUp, scissorUp);
+        Matrix4.multiplyVector(pMatrix, scissorRight, scissorRight);
+        Matrix4.multiplyVector(pMatrix, scissorDown, scissorDown);
+        Matrix4.multiplyVector(pMatrix, scissorLeft, scissorLeft);
 
         // Set the screen coordiates
-        outBuffer[0] = scissorCenter[0] - (scissorUpperRight[0] - scissorCenter[0]);
-        outBuffer[1] = scissorCenter[1] - (scissorUpperRight[1] - scissorCenter[1]);
-        outBuffer[2] = scissorUpperRight[0] - outBuffer[0];
-        outBuffer[3] = scissorUpperRight[1] - outBuffer[1];
+        outBuffer[0] = scissorLeft[0] / scissorLeft[2];
+        outBuffer[1] = scissorDown[1] / scissorDown[2];
+        outBuffer[2] = scissorRight[0] / scissorRight[2];
+        outBuffer[3] = scissorUp[1] / scissorUp[2];
 
         // Check to see if the light is even visible
-        if (outBuffer[2] <= 0.0 || outBuffer[3] <= 0.0) {
+        if (outBuffer[0] > 1 || outBuffer[1] > 1 || 
+            outBuffer[2] < -1 || outBuffer[3] < -1) {
             return null
         }else{
+            outBuffer[2] -= outBuffer[0];
+            outBuffer[3] -= outBuffer[1];
+
             outBuffer[0] = clamp(outBuffer[0], -1, 1);
             outBuffer[1] = clamp(outBuffer[1], -1, 1);
-            outBuffer[2] = Math.min(outBuffer[2], 2.0) * 0.5;
-            outBuffer[3] = Math.min(outBuffer[3], 2.0) * 0.5;
+            //outBuffer[2] = Math.min(outBuffer[2], 2.0) * 0.5;
+            //outBuffer[3] = Math.min(outBuffer[3], 2.0) * 0.5;
         }
 
         // Set to 0, 1 space screen coordinates
@@ -1201,10 +1218,6 @@ function Map(mapName, pakFile){
                                         scissor: selectedLight.getScissorWindow(camera, selectedLight.scissor),
                                         models: []
                                     };
-
-                                    if(light.scissor == null){
-                                        continue;
-                                    }
 
                                     drawBuffer.lights[lightName] = light;
                                 }
