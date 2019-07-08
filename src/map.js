@@ -363,10 +363,15 @@ var Light = function(){
         }
     }
 
-    let scissorUp = new Vector3();
-    let scissorRight = new Vector3();
-    let scissorDown = new Vector3();
-    let scissorLeft = new Vector3();
+    function normalizeViewCoordinates(inCoord){
+        inCoord[0] = inCoord[0] / inCoord[3];
+        inCoord[1] = inCoord[1] / inCoord[3];
+    }
+
+    let scissorUpBack = new Vector3();
+    let scissorRightBack = new Vector3();
+    let scissorUpFront = new Vector3();
+    let scissorRightFront = new Vector3();
     let scissorCenter = new Vector3();
     /**
      * Calculates the scissor window for specific bounds based on the light and the current camera.
@@ -393,41 +398,48 @@ var Light = function(){
 
         // Make sure the center is in front of the camera
         if(scissorCenter[2] > maxZ){
-            scissorCenter[2] = maxZ;
+           scissorCenter[2] = maxZ;
         }
 
-        // Calculate planes for each side.
-        scissorUp[0] = 0.0;
-        scissorUp[1] = 1.0;
-        scissorUp[2] = 0.0;
-        scissorUp[3] = -scissorCenter[1] - r
+        // Calculate up and right for the front and back planes.
+        scissorUpFront[0] = scissorCenter[0];
+        scissorUpFront[1] = scissorCenter[1] + r;
+        scissorUpFront[2] = Math.min(scissorCenter[2] + r, maxZ);
+        scissorUpFront[3] = 1.0;
 
-        scissorDown[0] = 0.0;
-        scissorDown[1] = -1.0;
-        scissorDown[2] = 0.0;
-        scissorDown[3] = -scissorCenter[1] - r
+        scissorRightFront[0] = scissorCenter[0] + r;
+        scissorRightFront[1] = scissorCenter[1];
+        scissorRightFront[2] = Math.min(scissorCenter[2] + r, maxZ);
+        scissorRightFront[3] = 1.0;
 
-        scissorRight[0] = 1.0;
-        scissorRight[1] = 0.0;
-        scissorRight[2] = 0.0;
-        scissorRight[3] = -scissorCenter[0] - r
+        scissorUpBack[0] = scissorCenter[0];
+        scissorUpBack[1] = scissorCenter[1] + r;
+        scissorUpBack[2] = Math.max(scissorCenter[2] - r, minZ);
+        scissorUpBack[3] = 1.0;
 
-        scissorLeft[0] = -1.0;
-        scissorLeft[1] = 0.0;
-        scissorLeft[2] = 0.0;
-        scissorLeft[3] = -scissorCenter[0] - r
+        scissorRightBack[0] = scissorCenter[0] + r;
+        scissorRightBack[1] = scissorCenter[1];
+        scissorRightBack[2] = Math.max(scissorCenter[2] - r, minZ);
+        scissorRightBack[3] = 1.0;
 
         // Project the points
-        Matrix4.multiplyVector(pMatrix, scissorUp, scissorUp);
-        Matrix4.multiplyVector(pMatrix, scissorRight, scissorRight);
-        Matrix4.multiplyVector(pMatrix, scissorDown, scissorDown);
-        Matrix4.multiplyVector(pMatrix, scissorLeft, scissorLeft);
+        Matrix4.multiplyVector(pMatrix, scissorUpFront, scissorUpFront);
+        Matrix4.multiplyVector(pMatrix, scissorRightFront, scissorRightFront);
+        Matrix4.multiplyVector(pMatrix, scissorUpBack, scissorUpBack);
+        Matrix4.multiplyVector(pMatrix, scissorRightBack, scissorRightBack);
+
+        normalizeViewCoordinates(scissorUpFront);
+        normalizeViewCoordinates(scissorRightFront);
+        normalizeViewCoordinates(scissorUpBack);
+        normalizeViewCoordinates(scissorRightBack);
 
         // Set the screen coordiates
-        outBuffer[0] = scissorLeft[0] / scissorLeft[2];
-        outBuffer[1] = scissorDown[1] / scissorDown[2];
-        outBuffer[2] = scissorRight[0] / scissorRight[2];
-        outBuffer[3] = scissorUp[1] / scissorUp[2];
+        outBuffer[0] = Math.min(scissorUpFront[0] - (scissorRightFront[0] - scissorUpFront[0]), 
+                        scissorUpBack[0] - (scissorRightBack[0] - scissorUpBack[0]));
+        outBuffer[1] = Math.min(scissorRightFront[1] - (scissorUpFront[1] - scissorRightFront[1]), 
+                        scissorRightBack[1] - (scissorUpBack[1] - scissorRightBack[1]));
+        outBuffer[2] = Math.max(scissorRightFront[0], scissorRightBack[0]);
+        outBuffer[3] = Math.max(scissorUpFront[1], scissorUpBack[2]);
 
         // Check to see if the light is even visible
         if (outBuffer[0] > 1 || outBuffer[1] > 1 || 
@@ -444,8 +456,8 @@ var Light = function(){
         }
 
         // Set to 0, 1 space screen coordinates
-        outBuffer[0] = (outBuffer[0] + 1.0) * 0.5;
-        outBuffer[1] = (outBuffer[1] + 1.0) * 0.5;
+        //outBuffer[0] = (outBuffer[0] + 1.0) * 0.5;
+        //outBuffer[1] = (outBuffer[1] + 1.0) * 0.5;
 
         return outBuffer;
     }

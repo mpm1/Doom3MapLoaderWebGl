@@ -83,20 +83,18 @@ var lightVertex = `#version 300 es
     uniform mat4 projectionTransform;
     uniform mat4 normalTransform;
 
+    out vec3 v_worldPosition;
     out vec3 v_position;
     out vec2 v_textureCoord;
     out vec3 v_normal;
     out vec3 v_lightPosition;
-    out vec3 v_lightRadius;
-    out float v_rad;
 
     void main(){
         vec4 position = worldTransform * vec4(a_position, 1.0);
         v_position = position.xyz;
+        v_worldPosition = a_position;
 
         v_lightPosition = vec3(worldTransform * vec4(uLight.center, 1.0));
-        v_lightRadius = vec3(normalTransform * vec4(uLight.radius.xyz, 0.0));
-        v_rad = max(max(uLight.radius.x, uLight.radius.y), uLight.radius.z);
         
         v_normal = normalize(vec3(normalTransform * vec4(a_normal, 0.0)));
 
@@ -113,12 +111,11 @@ var lightFragment = `#version 300 es
 
     ` + lightStruct + `
 
+    in vec3 v_worldPosition;
     in vec3 v_lightPosition;
-    in vec3 v_lightRadius;
     in vec3 v_position;
     in vec2 v_textureCoord;
     in vec3 v_normal;
-    in float v_rad;
 
     uniform Light uLight;
     uniform MaterialStage uDiffuse;
@@ -158,19 +155,16 @@ var lightFragment = `#version 300 es
     void main(){
         vec3 n = normalize(v_normal);
 
-        vec3 lightVec =  v_lightPosition.xyz - v_position.xyz;
-        float power = 1.0 - clamp(length(lightVec) / v_rad, 0.0, 1.0);
-        if(power > 0.0){
-            power = 1.0;
-        }
+        vec3 lightVec =  normalize(v_lightPosition.xyz - v_position.xyz);
+        vec3 worldLightVec = uLight.center - v_worldPosition;
 
-        vec4 diffuse = calculateDiffuse(normalize(lightVec), n);
+        float power = 1.0 - clamp(length(worldLightVec / uLight.radius.xyz), 0.0, 1.0);
+
+        vec4 diffuse = calculateDiffuse(lightVec, n);
         vec3 specular = calculateSpecular(n, lightVec);
 
         outColor.a = diffuse.a;
         outColor.rgb = (diffuse.rgb + specular) * power;
-        
-        //outColor.rgb = ((n + 1.0) * 0.5) * 0.1;
     }
 `
 
@@ -351,7 +345,7 @@ function Display(canvas){
     Display.prototype.init = function(canvas){
         var gl = initializeGL.call(this, canvas);
 
-        this.size = new Uint16Array([canvas.width, canvas.height]);
+        this.size = new Uint16Array([canvas.width, canvas.height, canvas.width >> 1, canvas.height >> 1]);
         this.gl = gl;
 
         this.shaders = { 
@@ -484,10 +478,10 @@ function Display(canvas){
 
             // Set the light viewing information
             gl.scissor(
-                Math.floor(light.scissor[0] * screenSize[0]),
-                Math.floor(light.scissor[1] * screenSize[1]),
-                Math.ceil(light.scissor[2] * screenSize[0]),
-                Math.ceil(light.scissor[3] * screenSize[1])
+                Math.floor(light.scissor[0] * screenSize[2]) + screenSize[2],
+                Math.floor(light.scissor[1] * screenSize[3]) + screenSize[3],
+                Math.ceil(light.scissor[2] * screenSize[2]),
+                Math.ceil(light.scissor[3] * screenSize[3])
             );
 
             // Set the light information
@@ -603,6 +597,8 @@ function Display(canvas){
     Display.prototype.resize = function(width, height){
         this.size[0] = width;
         this.size[1] = height;
+        this.size[2] = width >> 1;
+        this.size[3] = height >> 1;
 
         this.gl.viewport(0, 0, width, height);
     }
