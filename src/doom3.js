@@ -10,8 +10,8 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
     this.console.addFunction("viewtexture", new ConsoleFunction("viewtexture", "Draws a specified texture to a canvas on the bottom of the screen.", this.viewTexture, this));
 
     var _this = this;
-    this.loadPk4("./test/q3dm1.pk4").then(function(pak){ _this.loadMap("q3dm1"); });
-    //this.loadPk4("./test/amiens.pk4").then(function(pak){ _this.loadMap("amiens"); });
+    this.loadPk4("./test/q3dm2.pk4").then(function(pak){ _this.loadMap("q3dm2"); });
+    //this.loadPk4("./test/amiens.pk4").then(function(pak){ _this.loadMap("mp/amiens"); });
     
 }
 {
@@ -57,9 +57,13 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
     
                 if(arrayBuffer){
                     pak.loadAsync(arrayBuffer, {}).then(function(result){
-                        console.writeLine("Pak file loaded.");
+                        Material.loadAllMaterialFiles(pak).then(function(){
+                            console.writeLine("Pak file loaded.");
     
-                        resolve(pak);
+                            resolve(pak); 
+                        }, function(){
+                            reject(pak);
+                        });
                     }, function(){ reject(pak); });
                 }else{
                     console.writeLine("Error loading pak: " + url);

@@ -596,7 +596,7 @@ var Brush = function(){
 
         this.vertecies = new Float32Array(vertCount * ReadableVertex.readOrder.length);
         this.indecies = new Uint16Array(indexCount);
-        this.material = map.materials[materialName];
+        this.material = Material.getMaterial(materialName);
         this.materialName = materialName;
 
         // Read Verticies
@@ -738,38 +738,6 @@ function Map(mapName, pakFile){
     this.init(mapName, pakFile);
 }
 {
-
-    /**
-     * Loads the map into memory.
-     * 
-     * @param {FileLexer} materialFile 
-     */
-    function loadMaterials(materialFile){
-        this.line = 0;
-        var materialIndex = 0;
-        var materialCount = 0;
-
-        Console.current.writeLine("Loading materials...");
-
-        var token;
-        while((token = materialFile.next()) != null){
-            var material = new Material();
-            material.name = token;
-
-            materialFile.next(); // Opening bracket.
-            
-            if(material.parse(materialFile, this)){
-                this.materials[material.name] = material;
-                ++materialCount;
-            }else{
-                Console.current.writeLine("Failed to load material " + material.name + " index " + materialIndex);
-            }
-
-            ++materialIndex;
-        }
-
-        Console.current.writeLine(materialCount + " materials loaded.");
-    }
 
     function readEntityProperty(mapFile, entity){
         var token;
@@ -981,8 +949,6 @@ function Map(mapName, pakFile){
         this.isLoaded = false;
         this.name = mapName;
         this.pakFile = pakFile;
-        this.materials = {};
-        this.textures = {};
         this.areas = {};
         this.portals = [];
         this.camera = new Camera();
@@ -1012,43 +978,23 @@ function Map(mapName, pakFile){
         var pak = this.pakFile;
 
         return new Promise(function(resolve, reject){
-            pak.file("materials/" + map.name + ".mtr").async("string").then(function(text){
-                loadMaterials.call(map, new FileLexer(text));
+            pak.file("maps/" + map.name + ".map").async("string").then(function(text){
+                var entities = loadMap.call(map, new FileLexer(text));
                 
-                pak.file("maps/" + map.name + ".map").async("string").then(function(text){
-                    var entities = loadMap.call(map, new FileLexer(text));
-                    
-                    pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
-                        loadProcFile.call(map, new FileLexer(text));
-                        map.isLoaded = true;
+                pak.file("maps/" + map.name + ".proc").async("string").then(function(text){
+                    loadProcFile.call(map, new FileLexer(text));
+                    map.isLoaded = true;
 
-                        transformEntities.call(map, entities);
+                    transformEntities.call(map, entities);
 
-                        resolve(map);
-                    }, reject);
+                    resolve(map);
                 }, reject);
             }, reject);
         });
     }
 
     Map.prototype.getTexture = function(name){
-        if(this.textures[name]){
-            return this.textures[name];
-        }else{
-            var texture = new Texture();
-            var file = this.pakFile.file(name);
-
-            if(file){
-                file.async("arraybuffer").then(function(buffer){
-                    texture.load(buffer);
-                }, function(error){
-                    Console.current.writeLine("Failed to load texture " + texture + ": " + error)
-                });
-            }
-
-            this.textures[name] = texture;
-            return texture;
-        }
+        
     }
 
     /**
@@ -1265,10 +1211,6 @@ function Map(mapName, pakFile){
     }
 
     Map.prototype.update = function(deltaTime){
-        var materials = this.materials;
-
-        for(var key in materials){
-            materials[key].update(deltaTime);
-        }
+        Material.updateMaterials(deltaTime);
     }
 }

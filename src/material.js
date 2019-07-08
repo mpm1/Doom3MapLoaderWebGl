@@ -82,6 +82,33 @@ var Texture = function(){
     Texture.prototype.destroyGlTexture = function(gl){
         gl.deleteTexture(this.glTexture);
     }
+
+    /**
+     * This a dictionary used to access all loaded textures.
+     */
+    let textureDictionary = {};
+
+    Texture.getTexture = function(name, pakFile = null){
+        if(textureDictionary[name]){
+            return textureDictionary[name];
+        }else if(pakFile != null){
+            var texture = new Texture();
+            var file = pakFile.file(name);
+
+            if(file){
+                file.async("arraybuffer").then(function(buffer){
+                    texture.load(buffer);
+                }, function(error){
+                    Console.current.writeLine("Failed to load texture " + texture + ": " + error)
+                });
+            }
+
+            textureDictionary[name] = texture;
+            return texture;
+        }
+
+        return null;
+    }
 }
 
 // Basic textures
@@ -117,8 +144,8 @@ var MaterialStage = function(){
     this.init();
 }
 {
-    function setMapFunction(file, map){
-        this.map = map.getTexture(file.next());
+    function setMapFunction(file, pakFile){
+        this.map = Texture.getTexture(file.next(), pakFile);
     }
 
     function setBlendFromValue(file, firstToken){
@@ -257,7 +284,7 @@ var MaterialStage = function(){
         this.updateFunctions = [];
     }
 
-    MaterialStage.prototype.parse = function(file, map){
+    MaterialStage.prototype.parse = function(file, pakFile){
         var token;
 
         while((token = file.next()) != null){
@@ -267,7 +294,7 @@ var MaterialStage = function(){
             else{
                 token = token.toLowerCase();
                 if(tokenFunctions[token]){
-                    tokenFunctions[token].call(this, file, map)
+                    tokenFunctions[token].call(this, file, pakFile)
                 }else{
                     Console.current.writeLine("Function " + token + " not found.");
                 }
@@ -315,10 +342,10 @@ var Material = function(){
         }
     }
     
-    function setDiffuseMapFunction(file, map){
+    function setDiffuseMapFunction(file, pakFile){
         var stage = new MaterialStage();
         stage.blend.customMode = "diffusemap";
-        stage.map = map.getTexture(file.next());
+        stage.map = Texture.getTexture(file.next(), pakFile);
 
         this.diffuseStage = stage;
 
@@ -331,10 +358,10 @@ var Material = function(){
         }
     }
 
-    function setSpecularMapFunction(file, map){
+    function setSpecularMapFunction(file, pakFile){
         var stage = new MaterialStage();
         stage.blend.customMode = "specularmap";
-        stage.map = map.getTexture(file.next());
+        stage.map = Texture.getTexture(file.next(), pakFile);
 
         this.specularStage = stage;
 
@@ -347,9 +374,9 @@ var Material = function(){
         }
     }
 
-    function setNormalMapFunction(file, map){
+    function setNormalMapFunction(file, pakFile){
         var stage = this.normalStage;
-        stage.map = map.getTexture(file.next());
+        stage.map = Texture.getTexture(file.next(), pakFile);
     }
 
     let tokenFunctions = {
@@ -396,14 +423,14 @@ var Material = function(){
         });
     }
 
-    Material.prototype.parse = function(file, map){
+    Material.prototype.parse = function(file, pakFile){
         var token;
 
         while((token = file.next()) != null){
 
             if(token == "{"){
                 var stage = new MaterialStage();
-                stage.parse(file, map);
+                stage.parse(file, pakFile);
 
                 switch(stage.blend.customMode){
                     case "diffusemap":
@@ -442,7 +469,7 @@ var Material = function(){
             }else{
                 token = token.toLowerCase();
                 if(tokenFunctions[token]){
-                    tokenFunctions[token].call(this, file, map)
+                    tokenFunctions[token].call(this, file, pakFile)
                 }else{
                     Console.current.writeLine("Function " + token + " not found.");
                 }
@@ -450,5 +477,86 @@ var Material = function(){
         };
 
         return false;
+    }
+
+    // Static funcitons
+    let materialDictionary = {};
+
+    Material.updateMaterials = function(deltaTime){
+        var materials = materialDictionary;
+
+        for(var key in materials){
+            materials[key].update(deltaTime);
+        }
+    }
+
+    Material.getMaterial = function(name){
+        if(materialDictionary[name]){
+            return materialDictionary[name];
+        }
+
+        return null;
+    } 
+
+    /**
+     * Loads the materials into memory.
+     * 
+     * @param {FileLexer} materialFile 
+     */
+    function loadMaterials(pakFile, materialFile){
+        this.line = 0;
+        var materialIndex = 0;
+        var materialCount = 0;
+
+        var token;
+        while((token = materialFile.next()) != null){
+            var material = new Material();
+            material.name = token;
+
+            materialFile.next(); // Opening bracket.
+            
+            if(material.parse(materialFile, pakFile)){
+                materialDictionary[material.name] = material;
+                ++materialCount;
+            }else{
+                Console.current.writeLine("Failed to load material " + material.name + " index " + materialIndex);
+            }
+
+            ++materialIndex;
+        }
+
+        Console.current.writeLine(materialCount + " materials loaded.");
+    }
+
+    /**
+     * Used to find all materials in a pak file
+     */
+    Material.loadAllMaterialFiles = function(pakFile){
+        Console.current.writeLine("Loading materials...");
+        
+        var materialFiles = [];
+        
+        for(var name in pakFile.files){
+            if(name.endsWith(".mtr")){
+                materialFiles.push(name);
+            }
+        }
+
+        return new Promise(function(resolve, reject){
+            var filesLeft = materialFiles.length;
+
+            for(var i = 0; i < materialFiles.length; ++i){
+                pakFile.file(materialFiles[i]).async("string").then(function(text){
+                    loadMaterials(pakFile, new FileLexer(text));
+
+                    --filesLeft;
+
+                    if(filesLeft <= 0){
+                        Console.current.writeLine("Done loading materials.");
+                        resolve();
+                    }
+                }, reject);
+            }
+        });
     }
 }
