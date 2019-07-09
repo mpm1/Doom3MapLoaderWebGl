@@ -16,8 +16,8 @@ body {
 
 #gameConsole {
     border-style: outset;
-    border-color: red;
-    background-color: red;
+    border-color: #880000;
+    background-color: #880000;
     padding: 10px;
     width: 100%;
 }

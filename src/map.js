@@ -1201,7 +1201,16 @@ function Map(mapName, pakFile){
         this.drawBuffer.areas = {};
 
         var position = camera.transform.position;
-        var area = this.bspTree.findAreaByPoint(-position[0], -position[1], -position[2]);
+        var area = null;
+        
+        if(this.bspTree){
+            area = this.bspTree.findAreaByPoint(-position[0], -position[1], -position[2]);
+        }else{
+            for(var key in this.areas){
+                area = this.areas[key];
+                break;
+            }
+        }
 
         if(area != null){
             addAreaToDrawBuffer(area, this.drawBuffer, camera);

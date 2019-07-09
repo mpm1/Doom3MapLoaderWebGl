@@ -130,7 +130,7 @@ var lightFragment = `#version 300 es
 
         vec4 color = getStageColor(v_textureCoord, uDiffuse);
         color.rgb *= uLight.color.rgb;
-        color.rgb *= nDotL * color.a;
+        color.rgb *= nDotL;
 
         return color;
     }
