@@ -35,12 +35,9 @@
         <script type="text/javascript">
             var forwardSpeed = 3.0;
             var strifeSpeed = 3.0;
-            var game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
+            var game = null;
             var controls = new Controls($("#gameCanvas")[0]);
             controls.controls.Mouse.multiplier = 0.004;
-
-            game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
-            
 
             function handleControls(time) {
                 var map = game.map;
@@ -87,7 +84,12 @@
                 game.loop(secondsDelta);
             }
 
-            gameloop(0);
+            window.addEventListener("load", function(){
+                game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
+                game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
+
+                gameloop(0);
+            });
         </script>
 
     </body>

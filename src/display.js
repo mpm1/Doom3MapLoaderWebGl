@@ -253,6 +253,23 @@ function Display(canvas){
         return gl;
     }
 
+    function generateShadowFrameBuffer(gl, width, height){
+        var fb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+        var colorTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, colorTexture);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, colorTexture, 0);
+
+        return {
+            buffer: fb,
+            width: width,
+            height: height
+        };
+    }
+
     function createShader(gl, name, type, source){
         var shader = gl.createShader(type);
         gl.shaderSource(shader, source);
@@ -347,6 +364,8 @@ function Display(canvas){
 
         this.size = new Uint16Array([canvas.width, canvas.height, canvas.width >> 1, canvas.height >> 1]);
         this.gl = gl;
+
+        this.shadowBuffer = generateShadowFrameBuffer(gl, 512, 512);
 
         this.shaders = { 
             "depth" : createShaderProgram(gl, "depth", depthVertex, depthFrag, [
@@ -476,6 +495,11 @@ function Display(canvas){
                 continue;
             }
 
+            if(light.shadows){
+                gl.activeTexture(gl.TEXTURE3);
+                gl.bindTexture(gl.TEXTURE_CUBE_MAP, light.staticShadowMap);
+            }
+
             // Set the light viewing information
             gl.scissor(
                 Math.floor(light.scissor[0] * screenSize[2]) + screenSize[2],
@@ -571,6 +595,7 @@ function Display(canvas){
     Display.prototype.draw = function(drawBuffer, camera){
         var gl = this.gl;
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 
@@ -602,5 +627,104 @@ function Display(canvas){
 
         this.gl.viewport(0, 0, width, height);
     }
+
+    function drawShadowMap(gl, program, models, transform, texture, faceType){
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, faceType, texture, 0);
+
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+
+        gl.uniformMatrix4fv(program.modelMatrixUniform, false, transform.invMatrix);
+        
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LESS);
+        gl.depthMask(true);
+
+        models.forEach(function(model, cIndex){
+            drawModel(gl, program, model);
+        });
+
+        gl.depthMask(false);
+    }
+
+    function generatePointShadowTexture(gl, width, height){
+        var faceTypes = [gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, gl.TEXTURE_CUBE_MAP_NEGATIVE_X, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, gl.TEXTURE_CUBE_MAP_POSITIVE_X, gl.TEXTURE_CUBE_MAP_POSITIVE_Y, gl.TEXTURE_CUBE_MAP_NEGATIVE_Y];
+
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+        faceTypes.forEach(function(faceType){
+            const level = 0;
+            const internalFormat = gl.DEPTH_COMPONENT24;
+            const border = 0;
+            const format = gl.DEPTH_COMPONENT;
+            const type = gl.UNSIGNED_INT;
+            const data = null;
+            gl.texImage2D(faceType, level, internalFormat,
+                            width, height, border,
+                            format, type, data);
+            
+            // set the filtering so we don't need mips
+            //gl.texParameteri(gl.faceType, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            //gl.texParameteri(gl.faceType, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            //gl.texParameteri(gl.faceType, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        });
+    }
     
+    Display.prototype.generateStaticShadowMap = function(light){
+        var gl = this.gl;
+
+        var frameBuffer = this.shadowBuffer;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.buffer);
+
+        var projectionMatrix = new Matrix4();
+        var transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
+        var radius = Math.max(light.radius[0], light.radius[1], light.radius[2]);
+
+        var program = this.shaders.depth;
+        gl.useProgram(program);
+
+        gl.enableVertexAttribArray(program.positionAttribute);
+        gl.uniformMatrix4fv(program.viewMatrixUniform, false, projectionMatrix);
+
+        var texture = generatePointShadowTexture(gl, frameBuffer.width, frameBuffer.height);
+        light.staticShadowMap = texture;
+
+        // Create the perspective matrix
+        {
+            let aspectRatio = 1.0;
+            let near = 0.01;
+            let top = near * Math.tan(Math.PI / 4.0);
+            let bottom = -top;
+            let right = top * aspectRatio;
+            let left = -right;
+
+            Camera.createFrustrum(left, right, bottom, top, near, radius, projectionMatrix);
+        }
+
+        // Setup which models to draw
+        var models = [];
+        light.areas.forEach(function(area){
+            area.brushes.forEach(function(brush){
+                if(brush.material != null && brush.material.shadows){
+                    models.push(brush);
+                }
+            });
+        });
+
+        // Draw each face of the cube map
+
+        // Forward
+        drawShadowMap(gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z);
+
+        // Left
+        
+
+        // Back
+
+        // Right
+
+        // Up
+        
+        // Down
+    }
 }

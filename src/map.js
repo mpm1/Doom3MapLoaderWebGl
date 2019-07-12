@@ -269,6 +269,7 @@ var Light = function(){
         this.areas = [];
         this.bounds = new Float32Array(9);
         this.scissor = new Float32Array(4);
+        this.staticShadowMap = null;
 
         Object.defineProperties(this, {
             "origin": {

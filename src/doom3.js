@@ -80,8 +80,30 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
         });
     }
 
+    function generateStaticLighting(map){
+        var lightList = [];
+        var area, light, context;
+
+        for(var key in map.areas){
+            area = map.areas[key];
+
+            for(var lightKey in area.lights){
+                if(!lightList.includes(lightKey)){
+                    light = area.lights[lightKey];
+
+                    lightList.push(lightKey);
+
+                    if(light.shadows){
+                        this.display.generateStaticShadowMap(light);
+                    }
+                }
+            }
+        }
+    }
+
     Game.prototype.loadMap = function(mapName){
         var console = this.console;
+        var _this = this;
         console.writeLine("Loading map: " + mapName);
 
         if(this.map != null){
@@ -91,6 +113,8 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
 
         this.map = new Map(mapName, this.pak);
         this.map.load().then(function(map){
+            generateStaticLighting.call(_this, map);
+
             console.writeLine("Map " + mapName + " loaded successfully.");
         }, function(message){
             console.writeLine("An error occured while loading the map.");
