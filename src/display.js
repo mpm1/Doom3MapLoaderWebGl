@@ -4,6 +4,7 @@ struct Light {
     highp vec4 radius;
     lowp vec4 color;
     lowp int shadows;
+    sampler2D staticMap;
 };
 `
 
@@ -159,6 +160,11 @@ var lightFragment = `#version 300 es
         vec3 worldLightVec = uLight.center - v_worldPosition;
 
         float power = 1.0 - clamp(length(worldLightVec / uLight.radius.xyz), 0.0, 1.0);
+
+        if(uLight.shadows > 0){
+            float shadow = textureProj(uLight.staticMap, normalize(worldLightVec)).r;
+            power *= shadow;
+        }
 
         vec4 diffuse = calculateDiffuse(lightVec, n);
         vec3 specular = calculateSpecular(n, lightVec);
@@ -338,6 +344,10 @@ function Display(canvas){
                 if(propName.name == "stageMap"){
                     gl.uniform1i(program["stageMap"], 2);
                 }
+
+                if(propName.name == "lightStaticMap"){
+                    gl.uniform1i(program["lightStaticMap"], 3);
+                }
             });
 
             Console.current.writeLine("Shader loaded successfully.");
@@ -386,6 +396,7 @@ function Display(canvas){
                 { name: "lightRadius", glName: "uLight.radius", type: "uniform" },
                 { name: "lightColor", glName: "uLight.color", type: "uniform" },
                 { name: "lightShadow", glName: "uLight.shadows", type: "uniform" },
+                { name: "lightStaticMap", glName: "uLight.staticMap", type: "uniform" },
 
                 { name: "diffuseMap", glName: "uDiffuse.map", type: "uniform" },
                 { name: "diffuseTranslate", glName: "uDiffuse.translate", type: "uniform" },
@@ -495,9 +506,9 @@ function Display(canvas){
                 continue;
             }
 
-            if(light.shadows){
+            if(light.light.shadows){
                 gl.activeTexture(gl.TEXTURE3);
-                gl.bindTexture(gl.TEXTURE_CUBE_MAP, light.staticShadowMap);
+                gl.bindTexture(gl.TEXTURE_CUBE_MAP, light.light.staticShadowMap);
             }
 
             // Set the light viewing information
@@ -668,6 +679,8 @@ function Display(canvas){
             //gl.texParameteri(gl.faceType, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             //gl.texParameteri(gl.faceType, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         });
+
+        return texture;
     }
     
     Display.prototype.generateStaticShadowMap = function(light){
@@ -679,6 +692,7 @@ function Display(canvas){
         var projectionMatrix = new Matrix4();
         var transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
         var radius = Math.max(light.radius[0], light.radius[1], light.radius[2]);
+        var halfPI = Math.PI / 2.0;
 
         var program = this.shaders.depth;
         gl.useProgram(program);
@@ -717,14 +731,25 @@ function Display(canvas){
         drawShadowMap(gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z);
 
         // Left
-        
+        transform.rotate(halfPI, 0, 1.0, 0);
+        drawShadowMap(gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_X);
 
         // Back
+        transform.rotate(halfPI, 0, 1.0, 0);
+        drawShadowMap(gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_POSITIVE_Z);
 
         // Right
+        transform.rotate(halfPI, 0, 1.0, 0);
+        drawShadowMap(gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_POSITIVE_X);
 
         // Up
+        transform.rotate(halfPI, 0, 1.0, 0);
+        transform.rotate(halfPI, 1.0, 0, 0);
+        drawShadowMap(gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_POSITIVE_Y);
         
         // Down
+        transform.rotate(halfPI, -1.0, 0, 0);
+        transform.rotate(halfPI, -1.0, 0, 0);
+        drawShadowMap(gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_Y);
     }
 }
