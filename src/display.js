@@ -256,6 +256,9 @@ function Display(canvas){
 
         gl.polygonOffset(-1.0, 0.0);
 
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, DEFAULT_DIFFUSE.getGlTexture(gl));
+
         return gl;
     }
 
@@ -482,6 +485,7 @@ function Display(canvas){
     function drawLights(gl, drawBuffer, camera){
         var program = this.shaders.light;
         var screenSize = this.size;
+        var lights = drawBuffer.lights[Symbol.iterator]()
         var key, light;
 
         gl.useProgram(program);
@@ -499,9 +503,9 @@ function Display(canvas){
         gl.enable(gl.SCISSOR_TEST);
         gl.enable(gl.POLYGON_OFFSET_FILL);
 
-        for(key in drawBuffer.lights){
-            light = drawBuffer.lights[key];
-
+        for(let key of lights){
+            light = key[1];
+            
             if(light.scissor == null){
                 continue;
             }

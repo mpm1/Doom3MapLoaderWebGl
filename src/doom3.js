@@ -111,7 +111,7 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
             this.map = null;
         }
 
-        this.map = new Map(mapName, this.pak);
+        this.map = new GameMap(mapName, this.pak);
         this.map.load().then(function(map){
             generateStaticLighting.call(_this, map);
 

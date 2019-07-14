@@ -735,7 +735,7 @@ function BSPTree() {
     }
 }
 
-function Map(mapName, pakFile){
+function GameMap(mapName, pakFile){
     this.init(mapName, pakFile);
 }
 {
@@ -946,7 +946,7 @@ function Map(mapName, pakFile){
         }
     }
 
-    Map.prototype.init = function(mapName, pakFile){
+    GameMap.prototype.init = function(mapName, pakFile){
         this.isLoaded = false;
         this.name = mapName;
         this.pakFile = pakFile;
@@ -958,8 +958,8 @@ function Map(mapName, pakFile){
             opaqueModels: [],
             transparentModels: [],
             fullBrightModels: [],
-            lights: {},
-            areas: {}
+            lights: new Map(),
+            areas: new Map()
         }
 
         this.camera.setPerspective(80.0, 16.0 / 9.0, 1.0, 2000.0);
@@ -970,7 +970,7 @@ function Map(mapName, pakFile){
      * 
      * @returns {Promise} Stating if the map was resolved or rejected.
      */
-    Map.prototype.load = function(){
+    GameMap.prototype.load = function(){
         if(this.isLoaded){
             return;
         }
@@ -994,14 +994,14 @@ function Map(mapName, pakFile){
         });
     }
 
-    Map.prototype.getTexture = function(name){
+    GameMap.prototype.getTexture = function(name){
         
     }
 
     /**
      * Unloads the map from memory.
      */
-    Map.prototype.unload = function(){
+    GameMap.prototype.unload = function(){
 
     }
 
@@ -1144,8 +1144,8 @@ function Map(mapName, pakFile){
     }
 
     function addAreaToDrawBuffer(area, drawBuffer, camera){
-        if(!drawBuffer.areas.hasOwnProperty(area.name)){
-            drawBuffer.areas[area.name] = area;
+        if(!drawBuffer.areas.has(area.name)){
+            drawBuffer.areas.set(area.name, area);
             var lights = area.lights;
             
             area.brushes.forEach(function(brush){
@@ -1167,9 +1167,11 @@ function Map(mapName, pakFile){
                             var selectedLight = lights[lightName];
 
                             if(selectedLight.boundsIntersects(brush.bounds)){
-                                var light = drawBuffer.lights[lightName];
-
-                                if(!light){
+                                var light;
+                                
+                                if(drawBuffer.lights.has(lightName)){
+                                    light = drawBuffer.lights.get(lightName);
+                                }else{
                                     // Add the light to the scene table.
 
                                     light = {
@@ -1178,7 +1180,7 @@ function Map(mapName, pakFile){
                                         models: []
                                     };
 
-                                    drawBuffer.lights[lightName] = light;
+                                    drawBuffer.lights.set(lightName, light);
                                 }
 
                                 light.models.push(brush);
@@ -1194,12 +1196,12 @@ function Map(mapName, pakFile){
         return false; // we already have the area, so we did not add it to the buffer.
     }
 
-    Map.prototype.calculateDrawBuffer = function(camera){
+    GameMap.prototype.calculateDrawBuffer = function(camera){
         this.drawBuffer.opaqueModels.length = 0;
         this.drawBuffer.transparentModels.length = 0;
         this.drawBuffer.fullBrightModels.length = 0;
-        this.drawBuffer.lights = {}; //TODO: find a better way to do this.
-        this.drawBuffer.areas = {};
+        this.drawBuffer.lights.clear();
+        this.drawBuffer.areas.clear();
 
         var position = camera.transform.position;
         var area = null;
@@ -1220,7 +1222,7 @@ function Map(mapName, pakFile){
         }
     }
 
-    Map.prototype.update = function(deltaTime){
+    GameMap.prototype.update = function(deltaTime){
         Material.updateMaterials(deltaTime);
     }
 }
