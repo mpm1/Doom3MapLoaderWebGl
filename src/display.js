@@ -58,9 +58,12 @@ in vec3 a_position;
 uniform mat4 worldTransform;
 uniform mat4 projectionTransform;
 
+out vec4 v_position;
+
 void main(){
     vec4 position = worldTransform * vec4(a_position, 1.0);
     gl_Position = projectionTransform * position;
+    v_position = gl_Position;
 }
 `
 
@@ -72,7 +75,7 @@ out vec4 outColor;
 in vec4 v_position;
 
 void main(){
-    outColor = vec4(0, 0, 0, 1);
+    outColor = vec4((v_position.z / v_position.w), 0, 0.5, 1);
 
 }
 `
@@ -166,12 +169,16 @@ var lightFragment = `#version 300 es
 
         float power = 1.0 - clamp(length(worldLightVec / uLight.radius.xyz), 0.0, 1.0);
 
+        if(power > 0.0){
+            power = 1.0;
+        }
+
         if(uLight.shadows > 0){
             float lightNear = ` + lightNear + `; float lightFar = max(max(uLight.radius.x, uLight.radius.y), uLight.radius.z);
-            float shadowDepth = texture(uLight.staticMap, normalize(worldLightVec)).r;
+            float shadowDepth = texture(uLight.staticMap, normalize(-worldLightVec)).r;
             float lightDepth = 1.0 - (length(worldLightVec) - lightNear) / (lightNear - lightFar);
 
-            power = lightDepth >= shadowDepth ? power : 0.0;
+            power = lightDepth > shadowDepth ? power : 0.0;
         }
 
         vec4 diffuse = calculateDiffuse(lightVec, n);
@@ -249,7 +256,9 @@ function Display(canvas){
 }
 {
     function initializeGL(canvas){
-        var gl = canvas.getContext("webgl2");
+        var gl = canvas.getContext("webgl2", {
+            preserveDrawingBuffer: true, // Used to read the framebuffer values
+        });
 
         if(gl == null){
             //TODO: throw exception
@@ -475,6 +484,7 @@ function Display(canvas){
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LESS);
         gl.depthMask(true);
+        gl.colorMask(false, false, false, false);
 
         drawBuffer.opaqueModels.forEach(function(model, cIndex){
             drawModel(gl, program, model);
@@ -500,6 +510,7 @@ function Display(canvas){
         gl.enableVertexAttribArray(program.positionAttribute);
         gl.enableVertexAttribArray(program.normalAttribute);
         gl.enableVertexAttribArray(program.textureCoordAttribute);
+        gl.colorMask(true, true, true, true);
 
         setShaderUniforms(gl, program, camera);
 
@@ -725,7 +736,7 @@ function Display(canvas){
 
         var canRead = (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE);
         var data = new Uint8Array(width * height * 4);
-        gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, data);
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
         var imgData = new ImageData(new Uint8ClampedArray(data), width, height);
 
         var context = canvas[0].getContext("2d");
@@ -769,7 +780,10 @@ function Display(canvas){
 
         var projectionMatrix = new Matrix4();
         var transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
-        var radius = Math.max(light.radius[0], light.radius[1], light.radius[2]);
+        var lightPostion = light.transform.position;
+        transform.translate(lightPostion[0], lightPostion[1], lightPostion[2])
+
+        var radius = Math.max(-light.radius[0], -light.radius[1], -light.radius[2]);
         var halfPI = Math.PI / 2.0;
 
         var program = this.shaders.depth;
