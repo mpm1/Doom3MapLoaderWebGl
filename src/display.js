@@ -75,7 +75,8 @@ out vec4 outColor;
 in vec4 v_position;
 
 void main(){
-    outColor = vec4((v_position.z / v_position.w), 0, 0.5, 1);
+    float depth = -v_position.z / v_position.w;
+    outColor = vec4(depth, depth * depth, depth * depth * depth, 1);
 
 }
 `
@@ -724,12 +725,12 @@ function Display(canvas){
                 
                 case gl.TEXTURE_CUBE_MAP_POSITIVE_Y:
                     x = width;
-                    y = 0;
+                    y = height * 2;
                     break;
 
                 case gl.TEXTURE_CUBE_MAP_NEGATIVE_Y:
                     x = width;
-                    y = height * 2;
+                    y = 0;
                     break;
             }
         }
@@ -781,16 +782,15 @@ function Display(canvas){
         var projectionMatrix = new Matrix4();
         var transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
         var lightPostion = light.transform.position;
-        transform.translate(lightPostion[0], lightPostion[1], lightPostion[2])
+        transform.translate(-lightPostion[0], -lightPostion[1], -lightPostion[2])
 
-        var radius = Math.max(-light.radius[0], -light.radius[1], -light.radius[2]);
+        var radius = Math.max(light.radius[0], light.radius[1], light.radius[2]);
         var halfPI = Math.PI / 2.0;
 
         var program = this.shaders.depth;
         gl.useProgram(program);
 
         gl.enableVertexAttribArray(program.positionAttribute);
-        gl.uniformMatrix4fv(program.viewMatrixUniform, false, projectionMatrix);
 
         var texture = generatePointShadowTexture(gl, frameBuffer.width, frameBuffer.height);
         light.staticShadowMap = texture;
@@ -805,6 +805,7 @@ function Display(canvas){
             let left = -right;
 
             Camera.createFrustrum(left, right, bottom, top, near, radius, projectionMatrix);
+            gl.uniformMatrix4fv(program.viewMatrixUniform, false, projectionMatrix);
         }
 
         // Setup which models to draw
