@@ -61,8 +61,7 @@ uniform mat4 projectionTransform;
 out vec4 v_position;
 
 void main(){
-    vec4 position = worldTransform * vec4(a_position, 1.0);
-    gl_Position = projectionTransform * position;
+    gl_Position = projectionTransform * worldTransform * vec4(a_position, 1.0);
     v_position = gl_Position;
 }
 `
@@ -75,8 +74,9 @@ out vec4 outColor;
 in vec4 v_position;
 
 void main(){
-    float depth = -v_position.z / v_position.w;
-    outColor = vec4(depth, depth * depth, depth * depth * depth, 1);
+    float depth = v_position.z / v_position.w;
+    float red = (depth - 0.99) / 0.01;
+    outColor = vec4(red, red * red, red * red * red, 1);
 
 }
 `
@@ -176,7 +176,7 @@ var lightFragment = `#version 300 es
 
         if(uLight.shadows > 0){
             float lightNear = ` + lightNear + `; float lightFar = max(max(uLight.radius.x, uLight.radius.y), uLight.radius.z);
-            float shadowDepth = texture(uLight.staticMap, normalize(-worldLightVec)).r;
+            float shadowDepth = texture(uLight.staticMap, normalize(worldLightVec)).r;
             float lightDepth = 1.0 - (length(worldLightVec) - lightNear) / (lightNear - lightFar);
 
             power = lightDepth > shadowDepth ? power : 0.0;
@@ -516,6 +516,7 @@ function Display(canvas){
         setShaderUniforms(gl, program, camera);
 
         gl.depthFunc(gl.LEQUAL);
+        gl.depthMask(false);
         gl.blendFunc(gl.ONE, gl.ONE);
 
         gl.enable(gl.BLEND);
