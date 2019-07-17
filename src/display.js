@@ -75,8 +75,8 @@ in vec4 v_position;
 
 void main(){
     float depth = v_position.z / v_position.w;
-    float red = (depth - 0.99) / 0.01;
-    outColor = vec4(red, red * red, red * red * red, 1);
+    float red = pow(depth, 2000.0);
+    outColor = vec4(red, red, red, 1);
 
 }
 `
@@ -175,11 +175,16 @@ var lightFragment = `#version 300 es
         }
 
         if(uLight.shadows > 0){
+            float epsilon = 0.3;
             float lightNear = ` + lightNear + `; float lightFar = max(max(uLight.radius.x, uLight.radius.y), uLight.radius.z);
-            float shadowDepth = texture(uLight.staticMap, normalize(worldLightVec)).r;
-            float lightDepth = 1.0 - (length(worldLightVec) - lightNear) / (lightNear - lightFar);
+            float lightDepth = (length(worldLightVec) - lightNear) / (lightFar - lightNear);
 
-            power = lightDepth > shadowDepth ? power : 0.0;
+            vec4 shadowValue = texture(uLight.staticMap, normalize(-worldLightVec));
+            float shadowDepth = (shadowValue.r * (lightFar - lightNear)) + lightNear;
+
+            float shadowPower = shadowDepth < lightFar ? 0.0 : 1.0;
+
+            power *= shadowPower;
         }
 
         vec4 diffuse = calculateDiffuse(lightVec, n);
@@ -265,7 +270,7 @@ function Display(canvas){
             //TODO: throw exception
         }
 
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -843,6 +848,8 @@ function Display(canvas){
         
         // Down
         transform.rotate(halfPI, -1.0, 0, 0);
+        transform.rotate(halfPI, 0, 1.0, 0);
+        transform.rotate(halfPI, 0, 1.0, 0);
         transform.rotate(halfPI, -1.0, 0, 0);
         drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, light);
     }
