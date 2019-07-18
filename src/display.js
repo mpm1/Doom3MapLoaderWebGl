@@ -98,7 +98,7 @@ out vec4 outColor;
 
 void main(){
     gl_FragDepth = length(v_position.xyz) / radius;
-    outColor = vec4(gl_FragDepth, gl_FragDepth, gl_FragDepth, gl_FragDepth);
+    outColor = vec4(gl_FragDepth, gl_FragDepth, gl_FragDepth, 1.0);
 }
 `
 
