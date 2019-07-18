@@ -69,7 +69,7 @@ var Transform = function(position, rotation, scale){
 
     Transform.prototype.init = function(position, rotation, scale){
         var matrix = new Matrix4();
-        var right = new Float32Array(matrix.buffer, 4 * 0, 3)
+        var right = new Float32Array(matrix.buffer, 4 * 0, 3);
         var up = new Float32Array(matrix.buffer, 4 * 4, 3);
         var back = new Float32Array(matrix.buffer, 4 * 8, 3);
         var position = new Float32Array(matrix.buffer, 4 * 12, 3);
@@ -181,6 +181,41 @@ var Transform = function(position, rotation, scale){
         position[0] += x;
         position[1] += y;
         position[2] += z;
+    }
+
+    // Uses a vector to decide the direction of a camera.
+    Transform.prototype.lookAtVector = function(eyeVec, forwardVec, upVec){
+        var forward = this.backward;
+        var right = this.right;
+        var up = this.up;
+        var position = this.position;
+
+        position[0] = -eyeVec[0];
+        position[1] = -eyeVec[1];
+        position[2] = -eyeVec[2];
+        position[3] = 1.0;
+
+        forward[0] = forwardVec[0];
+        forward[1] = forwardVec[1];
+        forward[2] = forwardVec[2];
+        Vector3.normalized(forward, forward);
+
+        Vector3.cross(forward, upVec, right);
+        Vector3.normalized(right, right);
+
+        Vector3.cross(right, forward, up);
+
+        forward[0] = -forward[0];
+        forward[1] = -forward[1];
+        forward[2] = -forward[2];
+
+        var outMatrix = this.matrix;
+        outMatrix[3] = 0.0;
+        outMatrix[7] = 0.0;
+        outMatrix[11] = 0.0;
+        outMatrix[15] = 1.0;
+
+        this.stale = true;
     }
 }
 

@@ -38,9 +38,6 @@ Vector3.distance = function(vector1, vector2){
 Vector3.lengthSquared = function(vector){
     return (vector[0] * vector[0]) + (vector[1] * vector[1]) + (vector[2] * vector[2]);
 }
-Vector3.length = function(vector){
-    return Math.sqrt(Vector3.lengthSquared(vector));
-}
 Vector3.dot = function(vector1, vector2){
     return vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector[2];
 }
@@ -66,7 +63,7 @@ Vector3.add = function(a, b, outputVector){
     return outputVector;
 }
 Vector3.normalized = function(inputVector, outputVector){
-    var length = Vector3.length(inputVector);
+    var length = Math.sqrt(Vector3.lengthSquared(inputVector));
 
     if(length == 0){
         outputVector[0] = 0.0;
@@ -402,5 +399,4 @@ var Matrix4 = function( a = 1, b = 0, c = 0, d = 0,
 
         return outMatrix;
     }
-
 }
