@@ -58,11 +58,8 @@ in vec3 a_position;
 uniform mat4 worldTransform;
 uniform mat4 projectionTransform;
 
-out vec4 v_position;
-
 void main(){
     gl_Position = projectionTransform * worldTransform * vec4(a_position, 1.0);
-    v_position = gl_Position;
 }
 `
 
@@ -71,12 +68,8 @@ precision mediump float;
 
 out vec4 outColor;
 
-in vec4 v_position;
-
 void main(){
-    float depth = v_position.z / v_position.w;
-    float red = pow(depth, 2000.0);
-    outColor = vec4(red, red, red, 1);
+    outColor = vec4(0.0, 0.0, 0.0, 0.0);
 
 }
 `
@@ -179,10 +172,10 @@ var lightFragment = `#version 300 es
             float lightNear = ` + lightNear + `; float lightFar = max(max(uLight.radius.x, uLight.radius.y), uLight.radius.z);
             float lightDepth = (length(worldLightVec) - lightNear) / (lightFar - lightNear);
 
-            vec4 shadowValue = texture(uLight.staticMap, normalize(-worldLightVec));
+            vec3 shadowValue = texture(uLight.staticMap, normalize(-worldLightVec)).rgb;
             float shadowDepth = (shadowValue.r * (lightFar - lightNear)) + lightNear;
 
-            float shadowPower = shadowDepth < lightFar ? 0.0 : 1.0;
+            float shadowPower = shadowDepth < lightFar ? 0.5 : 1.0;
 
             power *= shadowPower;
         }
@@ -401,7 +394,7 @@ function Display(canvas){
         this.size = new Uint16Array([canvas.width, canvas.height, canvas.width >> 1, canvas.height >> 1]);
         this.gl = gl;
 
-        this.shadowBuffer = generateShadowFrameBuffer(gl, 512, 512);
+        this.shadowBuffer = null;
 
         this.shaders = { 
             "depth" : createShaderProgram(gl, "depth", depthVertex, depthFrag, [
@@ -687,67 +680,6 @@ function Display(canvas){
         });
 
         gl.finish();
-
-        // Temp code to draw the canvas to the screen.
-        var width = 512;
-        var height = 512;
-        var canvas = null;
-        var divId = light.name + "_div";
-        var x = 0, y = 0;
-        if(faceType == gl.TEXTURE_CUBE_MAP_NEGATIVE_Z){
-            var div = $("<div></div>");
-            div.attr("id", divId);
-            $("body").append(div);
-
-            var title = $("<div></div>");
-            title.text(light.name);
-            div.append(title);
-
-            canvas = $("<canvas></canvas>");
-            canvas.attr("width", width << 2);
-            canvas.attr("height", height * 3);
-            div.append(canvas);
-
-            x = width;
-            y = height;
-        }else{
-            canvas = $("#" + divId + " > canvas");
-
-            switch(faceType){
-                case gl.TEXTURE_CUBE_MAP_NEGATIVE_X:
-                    x = 0;
-                    y = height;
-                    break;
-
-                case gl.TEXTURE_CUBE_MAP_POSITIVE_Z:
-                    x = width * 3;
-                    y = height;
-                    break;
-
-                case gl.TEXTURE_CUBE_MAP_POSITIVE_X:
-                    x = width * 2;
-                    y = height;
-                    break;
-                
-                case gl.TEXTURE_CUBE_MAP_POSITIVE_Y:
-                    x = width;
-                    y = height * 2;
-                    break;
-
-                case gl.TEXTURE_CUBE_MAP_NEGATIVE_Y:
-                    x = width;
-                    y = 0;
-                    break;
-            }
-        }
-
-        var canRead = (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE);
-        var data = new Uint8Array(width * height * 4);
-        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
-        var imgData = new ImageData(new Uint8ClampedArray(data), width, height);
-
-        var context = canvas[0].getContext("2d");
-        context.putImageData(imgData, x, y);
     }
 
     function generatePointShadowTexture(gl, width, height){
@@ -780,10 +712,17 @@ function Display(canvas){
     
     Display.prototype.generateStaticShadowMap = function(light){
         var gl = this.gl;
+        var shadowWidth = 1024;
+        var shadowHeight = 1024;
 
         var frameBuffer = this.shadowBuffer;
+
+        if(frameBuffer == null){
+            frameBuffer = generateShadowFrameBuffer(gl, shadowWidth, shadowHeight);
+            this.shadowBuffer = frameBuffer;
+        }
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.buffer);
-        gl.viewport(0, 0, frameBuffer.width, frameBuffer.height);
+        var texture = generatePointShadowTexture(gl, frameBuffer.width, frameBuffer.height);
 
         var projectionMatrix = new Matrix4();
         var transform = new Transform(Vector3.zero, Quaternion.zero, Vector3.one);
@@ -797,13 +736,11 @@ function Display(canvas){
         gl.useProgram(program);
 
         gl.enableVertexAttribArray(program.positionAttribute);
-
-        var texture = generatePointShadowTexture(gl, frameBuffer.width, frameBuffer.height);
         light.staticShadowMap = texture;
 
         // Create the perspective matrix
         {
-            let aspectRatio = 1.0;
+            let aspectRatio = shadowWidth / shadowHeight;
             let near = lightNear;
             let top = near * Math.tan(Math.PI / 4.0);
             let bottom = -top;
@@ -827,19 +764,19 @@ function Display(canvas){
         // Draw each face of the cube map
 
         // Forward
-        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, light);
+        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, light);
 
         // Left
         transform.rotate(halfPI, 0, 1.0, 0);
-        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_X, light);
+        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_POSITIVE_X, light);
 
         // Back
         transform.rotate(halfPI, 0, 1.0, 0);
-        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, light);
+        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, light);
 
         // Right
         transform.rotate(halfPI, 0, 1.0, 0);
-        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_POSITIVE_X, light);
+        drawShadowMap.call(this, gl, program, models, transform, texture, gl.TEXTURE_CUBE_MAP_NEGATIVE_X, light);
 
         // Up
         transform.rotate(halfPI, 0, 1.0, 0);
