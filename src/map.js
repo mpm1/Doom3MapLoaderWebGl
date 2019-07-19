@@ -190,11 +190,6 @@ var Transform = function(position, rotation, scale){
         var up = this.up;
         var position = this.position;
 
-        position[0] = -eyeVec[0];
-        position[1] = -eyeVec[1];
-        position[2] = -eyeVec[2];
-        position[3] = 1.0;
-
         forward[0] = forwardVec[0];
         forward[1] = forwardVec[1];
         forward[2] = forwardVec[2];
@@ -215,6 +210,11 @@ var Transform = function(position, rotation, scale){
         outMatrix[11] = 0.0;
         outMatrix[15] = 1.0;
 
+        position[0] = 0;
+        position[1] = 0;
+        position[2] = 0;
+
+        this.translate(-eyeVec[0], -eyeVec[1], -eyeVec[2]);
         this.stale = true;
     }
 }
