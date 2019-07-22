@@ -59,6 +59,7 @@ var Texture = function(){
 
         if(!texture.loaded && this.imageData != null){
             var imageData = this.imageData;
+            gl.activeTexture(gl.TEXTURE4);
             gl.bindTexture(gl.TEXTURE_2D, texture);
 
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  
@@ -88,19 +89,22 @@ var Texture = function(){
      */
     let textureDictionary = {};
 
-    Texture.getTexture = function(name, pakFile = null){
+    Texture.getTexture = function(name, pakFile = null, isCubeMap = false){
         if(textureDictionary[name]){
             return textureDictionary[name];
         }else if(pakFile != null){
-            var texture = new Texture();
-            var file = pakFile.file(name);
+            var texture = isCubeMap ? new CubemapTexture(pakFile, name) : new Texture();
+            
+            if(!isCubeMap){
+                var file = pakFile.file(name);
 
-            if(file){
-                file.async("arraybuffer").then(function(buffer){
-                    texture.load(buffer);
-                }, function(error){
-                    Console.current.writeLine("Failed to load texture " + texture + ": " + error)
-                });
+                if(file){
+                    file.async("arraybuffer").then(function(buffer){
+                        texture.load(buffer);
+                    }, function(error){
+                        Console.current.writeLine("Failed to load texture " + texture + ": " + error)
+                    });
+                }
             }
 
             textureDictionary[name] = texture;
@@ -108,6 +112,139 @@ var Texture = function(){
         }
 
         return null;
+    }
+}
+
+// Cube map texture
+var CubemapTexture = function(pakFile, name){
+    this.imageData = [null, null, null, null, null, null];
+
+    this.glTexture = null;
+
+    CubemapTexture.loadFromPak(this, pakFile, name);
+}
+{
+    CubemapTexture.prototype = Object.create(Texture.prototype);
+
+    function generateEmptyTexture(gl){
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const width = 1;
+        const height = 1;
+        const border = 0;
+        const srcFormat = gl.RGBA;
+        const srcType = gl.UNSIGNED_BYTE;
+        var pixel;
+
+        for(var i = 0; i < 6; ++i){
+
+            switch(i){
+                case 0:
+                    pixel = new Uint8Array([0, 0, 255, 255]);
+                    break;
+
+                case 1:
+                    pixel = new Uint8Array([0, 255, 0, 255]);
+                    break;
+
+                case 2:
+                    pixel = new Uint8Array([255, 0, 0, 255]);
+                    break;
+
+                case 3:
+                    pixel = new Uint8Array([255, 255, 0, 255]);
+                    break;
+
+                case 4:
+                        pixel = new Uint8Array([255, 0, 255, 255]);
+                        break;
+                
+                case 5:
+                    pixel = new Uint8Array([0, 255, 255, 255]);
+                    break;
+            }
+
+            gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, level, internalFormat,
+                width, height, border, srcFormat, srcType,
+                pixel);
+        }
+
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+        
+        texture.loaded = false;
+
+        return texture;
+    }
+
+    CubemapTexture.prototype.load = function(tgaData, index){
+        var tga = new TgaLoader();
+        tga.load(new Uint8Array(tgaData));
+
+        this.imageData[index] = tga.getImageData();
+    }
+
+    CubemapTexture.prototype.getGlTexture = function(gl){
+        var texture = this.glTexture;
+
+        if(texture == null){
+            texture = generateEmptyTexture(gl);
+            this.glTexture = texture;
+        }
+
+        if(!texture.loaded){
+            var imageData = this.imageData;
+            gl.activeTexture(gl.TEXTURE3);
+            gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+            var loadCount = 0;
+
+            for(var i = 0; i < 6; ++i){
+                if(imageData[i] != null){
+                    ++loadCount;
+
+                    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA,  
+                        imageData[i].width, imageData[i].height, 0, gl.RGBA,
+                        gl.UNSIGNED_BYTE, new Uint8Array(imageData[i].data.buffer));
+                }
+            }
+
+            texture.loaded = loadCount >= 6;
+        }
+
+        return texture;
+    }
+
+    CubemapTexture.prototype.destroyGlTexture = function(gl){
+        gl.deleteTexture(this.glTexture);
+    }
+
+    // Static functions
+    function loadImageFile(pakFile, name, index){
+        var file = pakFile.file(name);
+        var _this = this;
+
+        if(file){
+            file.async("arraybuffer").then(function(buffer){
+                _this.load(buffer, index);
+            }, function(error){
+                Console.current.writeLine("Failed to load texture " + texture + ": " + error)
+            });
+        }
+    }
+
+    CubemapTexture.loadFromPak = function(cubemap, pakFile, name){
+        loadImageFile.call(cubemap, pakFile, name + "_right.tga", 0);
+        loadImageFile.call(cubemap, pakFile, name + "_left.tga", 1);
+        loadImageFile.call(cubemap, pakFile, name + "_up.tga", 2);
+        loadImageFile.call(cubemap, pakFile, name + "_down.tga", 3);
+        loadImageFile.call(cubemap, pakFile, name + "_forward.tga", 4);
+        loadImageFile.call(cubemap, pakFile, name + "_back.tga", 5);
     }
 }
 
@@ -140,12 +277,24 @@ const BLEND_MODES = {
 
 }
 
+// Texgen modes
+const TEXGEN = {
+    normal : 0x00000000,
+    skybox : 0x00000001,
+    wobblesky : 0x00000002,
+    reflect : 0x00000004
+}
+
 var MaterialStage = function(){
     this.init();
 }
 {
     function setMapFunction(file, pakFile){
         this.map = Texture.getTexture(file.next(), pakFile);
+    }
+
+    function setCubeMapFunction(file, pakFile){
+        this.cubemap = Texture.getTexture(file.next(), pakFile, true);
     }
 
     function setBlendFromValue(file, firstToken){
@@ -192,6 +341,18 @@ var MaterialStage = function(){
         var firstToken = file.next();
 
         setBlendFromValue.call(this, file, firstToken.toLowerCase());
+    }
+
+    function setTexgenFunction(file){
+        var firstToken = file.next().toLowerCase();
+
+        this.cubemapBits |= TEXGEN[firstToken];
+
+        if(firstToken == "wobblesky"){
+            this.wobble[0] = parseFloat(file.next()); 
+            this.wobble[1] = parseFloat(file.next()); 
+            this.wobble[2] = parseFloat(file.next()); 
+        }
     }
 
     function createSetNumberFunction(name){
@@ -260,7 +421,9 @@ var MaterialStage = function(){
         "translate" : createVector2UpdateFunction("translate"),
         "scroll" : createVector2UpdateFunction("translate"),
         "scale" : createVector2UpdateFunction("scale"),
-        "rotate" : createUpdateFunction("rotate")
+        "rotate" : createUpdateFunction("rotate"),
+        "texgen" : setTexgenFunction,
+        "cameracubemap" : setCubeMapFunction,
     }
 
     MaterialStage.prototype.init = function(){
@@ -280,6 +443,10 @@ var MaterialStage = function(){
         this.translate = new Float32Array([0, 0]);
         this.scale = new Float32Array([1.0, 1.0]);
         this.rotate = 0.0;
+
+        this.cubemapBits = TEXGEN.normal;
+        this.wobble = new Float32Array([0.0, 0.0, 0.0, 0.0]);
+        this.cubemap = null;
 
         this.updateFunctions = [];
     }
