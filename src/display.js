@@ -1,4 +1,4 @@
-const lightNear = 0.1;
+const lightNear = 0.01;
 
 var lightStruct = `
 struct Light {

@@ -33,7 +33,7 @@
         </div>
 
         <script type="text/javascript">
-            var forwardSpeed = 3.0;
+            var forwardSpeed = 5.0;
             var strifeSpeed = 3.0;
             var game = null;
             var controls = new Controls($("#gameCanvas")[0]);
@@ -80,7 +80,7 @@
 
                 var secondsDelta = time / 1000.0;
 
-                handleControls(time);
+                handleControls(secondsDelta);
                 game.loop(secondsDelta);
             }
 
