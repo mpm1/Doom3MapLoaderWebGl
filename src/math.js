@@ -1,3 +1,5 @@
+const PI2 = Math.PI + Math.PI;
+
 function lerp(a, b, amount){
     return ((1.0 - amount) * a) + (b * amount);
 }
@@ -12,6 +14,14 @@ function degreeToRadins(degrees){
 
 function clamp(value, min, max){
     return Math.min(Math.max(value, min), max);
+}
+
+function modRadians(value){
+    if(value > PI2 || value < -PI2){
+        return value % PI2;
+    }
+
+    return value;
 }
 
 var Vector3 = function(x, y, z){
@@ -39,7 +49,7 @@ Vector3.lengthSquared = function(vector){
     return (vector[0] * vector[0]) + (vector[1] * vector[1]) + (vector[2] * vector[2]);
 }
 Vector3.dot = function(vector1, vector2){
-    return vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector[2];
+    return vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector2[2];
 }
 Vector3.cross = function(a, b, output){
     output[0] = a[1] * b[2] - a[2] * b[1];
@@ -131,11 +141,11 @@ Quaternion.normalize = function(input, output){
 
     Quaternion.rotate = function(q, x, y, z, rads, output){
         Quaternion.set(quaternionBuffer, x, y, z, rads);
-        Quaternion.mul(q1, quaternionBuffer, output);
+        Quaternion.mul(q, quaternionBuffer, output);
         Quaternion.normalize(output, output);
         return output;
     }
-    Quaternion.mul = function(q1, q2, ouput){
+    Quaternion.mul = function(q1, q2, output){
         // = [q2.w * q1.w - dot(q2.xyz, q1.xyz), q2.w * q1.xyz + q1.w * q2.xyz + cross(q1.xyz, q2.xyz)]
         var dot = Vector3.dot(q2, q1);
         var vector = new Vector3(

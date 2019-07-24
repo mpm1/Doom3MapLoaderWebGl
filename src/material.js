@@ -343,15 +343,31 @@ var MaterialStage = function(){
         setBlendFromValue.call(this, file, firstToken.toLowerCase());
     }
 
+    let wobbleBuffer = new Quaternion(0.0, 0.0, 0.0, 0.0);
+    function createAndAddWobbleSkyFunction(x, y, z){
+        var wobble = this.wobble;
+
+        var wobblesky = function(timeDelta){
+            
+            Quaternion.rotate(wobble, x, y, z, timeDelta, wobbleBuffer);
+
+            wobble[0] = wobbleBuffer[0];
+            wobble[1] = wobbleBuffer[1];
+            wobble[2] = wobbleBuffer[2];
+            wobble[3] = wobbleBuffer[3];
+        };
+
+        this.updateFunctions.push(wobblesky);
+    }
+
     function setTexgenFunction(file){
         var firstToken = file.next().toLowerCase();
 
         this.cubemapBits |= TEXGEN[firstToken];
 
         if(firstToken == "wobblesky"){
-            this.wobble[0] = parseFloat(file.next()); 
-            this.wobble[1] = parseFloat(file.next()); 
-            this.wobble[2] = parseFloat(file.next()); 
+            // Add wobble sky as a function
+            createAndAddWobbleSkyFunction.call(this, parseFloat(file.next()), parseFloat(file.next()), parseFloat(file.next()));
         }
     }
 
@@ -445,7 +461,7 @@ var MaterialStage = function(){
         this.rotate = 0.0;
 
         this.cubemapBits = TEXGEN.normal;
-        this.wobble = new Float32Array([0.0, 0.0, 0.0, 0.0]);
+        this.wobble = new Quaternion(0.0, 0.0, 0.0, 0.0);
         this.cubemap = null;
 
         this.updateFunctions = [];

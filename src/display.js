@@ -18,6 +18,7 @@ struct MaterialStage {
     mediump float rotation;
     mediump float alphaTest;
     lowp int cubemapBits;
+    mediump vec4 wobblesky;
     samplerCube cubemap;
 };
 `
@@ -55,7 +56,10 @@ var materialFunctions = `
 
     vec4 getCubemapColor(vec3 inputUV, MaterialStage stage){
         if(stage.cubemapBits > 0){
-            return texture(stage.cubemap, inputUV);
+            vec3 rotateBy = cross(stage.wobblesky.xyz, inputUV) + stage.wobblesky.w * inputUV;
+            vec3 rotated = inputUV + 2.0 * cross(stage.wobblesky.xyz, rotateBy);
+
+            return texture(stage.cubemap, rotated);
         }
 
         return vec4(0.0, 0.0, 0.0, 0.0);
@@ -501,7 +505,8 @@ function Display(canvas){
                 { name: "stageRotation", glName: "uStage.rotation", type: "uniform" },
                 { name: "stageAlphaTest", glName: "uStage.alphaTest", type: "uniform" },
                 { name: "stageCubemapBits", glName: "uStage.cubemapBits", type: "uniform" },
-                { name: "stageCubemap", glName: "uStage.cubemap", type: "uniform" }
+                { name: "stageCubemap", glName: "uStage.cubemap", type: "uniform" },
+                { name: "stageWobblesky", glName: "uStage.wobblesky", type: "uniform" }
             ]) 
         };
 
@@ -686,6 +691,7 @@ function Display(canvas){
 
                 // Set stage properties
                 setStageUniforms("stage", program, gl, stage);
+                gl.uniform4fv(program.stageWobblesky, stage.wobble);
         
                 drawModel(gl, program, model);
             });
@@ -781,8 +787,8 @@ function Display(canvas){
     
     Display.prototype.generateStaticShadowMap = function(light){
         var gl = this.gl;
-        var shadowWidth = 1024;
-        var shadowHeight = 1024;
+        var shadowWidth = 512;
+        var shadowHeight = 512;
 
         var frameBuffer = this.shadowBuffer;
 
