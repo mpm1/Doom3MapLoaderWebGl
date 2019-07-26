@@ -126,9 +126,8 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
         Material.LOOKUP_TABLE.time += deltaTime;
     }
 
-    Game.prototype.loop = function(deltaTime){
+    Game.prototype.loop = function(deltaSeconds){
         var map = this.map;
-        var deltaSeconds = deltaTime / 1000.0;
         if(map != null){
             if(map.isLoaded){
                 this.updateMaterialLookup(deltaSeconds);

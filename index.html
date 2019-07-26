@@ -33,8 +33,8 @@
         </div>
 
         <script type="text/javascript">
-            var forwardSpeed = 3.0;
-            var strifeSpeed = 3.0;
+            var forwardSpeed = 6.0;
+            var strifeSpeed = 6.0;
             var game = null;
             var controls = new Controls($("#gameCanvas")[0]);
             controls.controls.Mouse.multiplier = 0.004;
@@ -75,20 +75,28 @@
                 }
             }
 
-            function gameloop(time){
+            var lastTimestamp = window.performance.now();
+            const frameTime = 1000.0 / 60.0;
+            function gameloop(){
                 window.requestAnimationFrame(gameloop);
 
-                var secondsDelta = time / 1000.0;
+                var currentTime = window.performance.now();
+                var timeDelta = currentTime - lastTimestamp;
 
-                handleControls(time);
-                game.loop(secondsDelta);
+                if(timeDelta >= frameTime){
+                    lastTimestamp = currentTime;
+                    var secondsDelta = timeDelta / 1000.0;
+
+                    handleControls(secondsDelta);
+                    game.loop(secondsDelta);
+                }
             }
 
             window.addEventListener("load", function(){
                 game = new Game("#gameCanvas", "#gameConsole > .output", "#gameConsole > .input", "#gameConsole > .inputClick");
                 game.console.writeLine("Welcome to the Doom 3 map loader and viewer.");
 
-                gameloop(0);
+                gameloop();
             });
         </script>
 

@@ -346,15 +346,16 @@ var MaterialStage = function(){
     let wobbleBuffer = new Quaternion(0.0, 0.0, 0.0, 0.0);
     function createAndAddWobbleSkyFunction(x, y, z){
         var wobble = this.wobble;
+        var rotation = 0.0;
 
         var wobblesky = function(timeDelta){
-            
-            Quaternion.rotate(wobble, x, y, z, timeDelta, wobbleBuffer);
 
-            wobble[0] = wobbleBuffer[0];
-            wobble[1] = wobbleBuffer[1];
-            wobble[2] = wobbleBuffer[2];
-            wobble[3] = wobbleBuffer[3];
+            rotation += timeDelta;
+            while(rotation > PI2){
+                rotation -= PI2;
+            }
+            
+            Quaternion.set(wobble, x, y, z, rotation);
         };
 
         this.updateFunctions.push(wobblesky);
