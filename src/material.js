@@ -66,13 +66,18 @@ var Texture = function(){
                 imageData.width, imageData.height, 0, gl.RGBA,
                 gl.UNSIGNED_BYTE, new Uint8Array(imageData.data.buffer));
 
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
             if(isPositivePower2(imageData.width) && isPositivePower2(imageData.height)){
                 gl.generateMipmap(gl.TEXTURE_2D);
             }else{
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             }
+
 
             texture.loaded = true;
         }
