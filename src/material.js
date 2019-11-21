@@ -3,6 +3,7 @@ var Texture = function(){
 
     this.glTexture = null;
 }
+Texture.MIPMAP_COUNT = 4;
 {
     function generateEmptyTexture(gl){
         var texture = gl.createTexture();
@@ -19,6 +20,8 @@ var Texture = function(){
         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
                         width, height, border, srcFormat, srcType,
                         pixel);
+
+        gl.generateMipmap(gl.TEXTURE_2D);
 
         texture.loaded = false;
 
@@ -66,7 +69,7 @@ var Texture = function(){
                 imageData.width, imageData.height, 0, gl.RGBA,
                 gl.UNSIGNED_BYTE, new Uint8Array(imageData.data.buffer));
 
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
