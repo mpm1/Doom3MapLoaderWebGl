@@ -571,6 +571,8 @@ function Display(canvas){
         var lights = drawBuffer.lights[Symbol.iterator]()
         var key, light;
 
+        var lastMaterial = null;
+
         gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
         gl.enableVertexAttribArray(program.normalAttribute);
@@ -627,8 +629,12 @@ function Display(canvas){
                 gl.bindTexture(gl.TEXTURE_2D, texture);
 
                 // Set any properties
-                setStageUniforms("specular", program, gl, material.specularStage);
-                setStageUniforms("diffuse", program, gl, material.diffuseStage);
+                if(lastMaterial != material){
+                    // TODO: Sort evironment by material.
+                    setStageUniforms("specular", program, gl, material.specularStage);
+                    setStageUniforms("diffuse", program, gl, material.diffuseStage);
+                    lastMaterial = material;
+                }
 
 
                 drawModel(gl, program, model);
