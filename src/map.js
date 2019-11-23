@@ -1215,7 +1215,9 @@ function GameMap(mapName, pakFile){
                                         models: []
                                     };
 
-                                    drawBuffer.lights.set(lightName, light);
+                                    if(light.scissor != null){
+                                        drawBuffer.lights.set(lightName, light);
+                                    }
                                 }
 
                                 light.models.push(brush);
@@ -1232,11 +1234,12 @@ function GameMap(mapName, pakFile){
     }
 
     GameMap.prototype.calculateDrawBuffer = function(camera){
-        this.drawBuffer.opaqueModels.length = 0;
-        this.drawBuffer.transparentModels.length = 0;
-        this.drawBuffer.fullBrightModels.length = 0;
-        this.drawBuffer.lights.clear();
-        this.drawBuffer.areas.clear();
+        var drawBuffer = this.drawBuffer;
+        drawBuffer.opaqueModels.length = 0;
+        drawBuffer.transparentModels.length = 0;
+        drawBuffer.fullBrightModels.length = 0;
+        drawBuffer.lights.clear();
+        drawBuffer.areas.clear();
 
         var position = camera.transform.position;
         var area = null;
@@ -1251,10 +1254,21 @@ function GameMap(mapName, pakFile){
         }
 
         if(area != null){
-            addAreaToDrawBuffer(area, this.drawBuffer, camera);
+            addAreaToDrawBuffer(area, drawBuffer, camera);
 
-            readChildAreas.call(this, area, this.drawBuffer, camera, -1.1, -1.1, 1.1, 1.1);
+            readChildAreas.call(this, area, drawBuffer, camera, -1.1, -1.1, 1.1, 1.1);
         }
+
+        // Sort the models for each light
+        drawBuffer.lights.forEach(function(light){
+            light.models.sort(function(a,b){ 
+                if(a.material == b.material){
+                    return 0;
+                }
+
+                return a.material.name < b.material.name ? -1 : 1;
+            });
+        });
     }
 
     GameMap.prototype.update = function(deltaTime){

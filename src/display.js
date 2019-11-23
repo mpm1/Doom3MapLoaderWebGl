@@ -17,6 +17,9 @@ struct MaterialStage {
     highp vec2 scale; 
     mediump float rotation;
     mediump float alphaTest;
+    lowp int cubemapBits;
+    mediump vec4 wobblesky;
+    samplerCube cubemap;
 };
 `
 
@@ -49,6 +52,17 @@ var materialFunctions = `
         }
 
         return color;
+    }
+
+    vec4 getCubemapColor(vec3 inputUV, MaterialStage stage){
+        if(stage.cubemapBits > 0){
+            vec3 rotateBy = cross(stage.wobblesky.xyz, inputUV) + stage.wobblesky.w * inputUV;
+            vec3 rotated = inputUV + 2.0 * cross(stage.wobblesky.xyz, rotateBy);
+
+            return texture(stage.cubemap, rotated);
+        }
+
+        return vec4(0.0, 0.0, 0.0, 0.0);
     }
 `
 
@@ -201,7 +215,7 @@ var lightFragment = `#version 300 es
 
             float currentDepth = length(worldLightVec);
             
-            float shadow = currentDepth - bias < closestDepth ? 1.0 : 0.5;
+            float shadow = currentDepth - bias < closestDepth ? 1.0 : 0.0;
 
             power *= shadow;
         }
@@ -246,6 +260,7 @@ var stageFragment = `#version 300 es
     in vec2 v_textureCoord;
     in vec3 v_normal;
 
+    uniform vec3 uCameraPosition;
     uniform MaterialStage uStage;
 
     out vec4 outColor;
@@ -253,7 +268,13 @@ var stageFragment = `#version 300 es
     ` + materialFunctions + `
 
     void main(){
-        outColor = getStageColor(v_textureCoord, uStage);
+        if(uStage.cubemapBits > 0){
+            // TODO handle reflection and wobble sky. For now we just handle skys.
+            vec3 uv = v_position - uCameraPosition;
+            outColor = getCubemapColor(uv, uStage);
+        }else{
+            outColor = getStageColor(v_textureCoord, uStage);
+        }
     }
 `
 
@@ -381,15 +402,19 @@ function Display(canvas){
                 if(propName.name == "diffuseMap"){
                     gl.uniform1i(program["diffuseMap"], 0);
                 }
-
+                
                 if(propName.name == "specularMap"){
                     gl.uniform1i(program["specularMap"], 1);
                 }
-
+                
                 if(propName.name == "stageMap"){
                     gl.uniform1i(program["stageMap"], 2);
                 }
-
+                
+                if(propName.name.endsWith("Cubemap")){
+                    gl.uniform1i(program[propName.name], 3);
+                }
+                
                 if(propName.name == "lightStaticMap"){
                     gl.uniform1i(program["lightStaticMap"], 3);
                 }
@@ -454,12 +479,16 @@ function Display(canvas){
                 { name: "diffuseScale", glName: "uDiffuse.scale", type: "uniform" },
                 { name: "diffuseRotation", glName: "uDiffuse.rotation", type: "uniform" },
                 { name: "diffuseAlphaTest", glName: "uDiffuse.alphaTest", type: "uniform" },
+                { name: "diffuseCubemapBits", glName: "uDiffuse.cubemapBits", type: "uniform" },
+                { name: "diffuseCubemap", glName: "uDiffuse.cubemap", type: "uniform" },
 
                 { name: "specularMap", glName: "uSpecular.map", type: "uniform" },
                 { name: "specularTranslate", glName: "uSpecular.translate", type: "uniform" },
                 { name: "specularScale", glName: "uSpecular.scale", type: "uniform" },
                 { name: "specularRotation", glName: "uSpecular.rotation", type: "uniform" },
-                { name: "specularAlphaTest", glName: "uSpecular.alphaTest", type: "uniform" }
+                { name: "specularAlphaTest", glName: "uSpecular.alphaTest", type: "uniform" },
+                { name: "specularCubemapBits", glName: "uSpecular.cubemapBits", type: "uniform" },
+                { name: "specularCubemap", glName: "uSpecular.cubemap", type: "uniform" }
             ]),
             "stage" : createShaderProgram(gl, "stage", stageVertex, stageFragment, [
                 { name: "positionAttribute", glName: "a_position", type: "attribute" },
@@ -468,12 +497,16 @@ function Display(canvas){
 
                 { name: "modelMatrixUniform", glName: "worldTransform", type: "uniform" },
                 { name: "viewMatrixUniform", glName: "projectionTransform", type: "uniform" },
+                { name: "cameraPositionUniform", glName: "uCameraPosition", type: "uniform" },
 
                 { name: "stageMap", glName: "uStage.map", type: "uniform" },
                 { name: "stageTranslate", glName: "uStage.translate", type: "uniform" },
                 { name: "stageScale", glName: "uStage.scale", type: "uniform" },
                 { name: "stageRotation", glName: "uStage.rotation", type: "uniform" },
-                { name: "stageAlphaTest", glName: "uStage.alphaTest", type: "uniform" }
+                { name: "stageAlphaTest", glName: "uStage.alphaTest", type: "uniform" },
+                { name: "stageCubemapBits", glName: "uStage.cubemapBits", type: "uniform" },
+                { name: "stageCubemap", glName: "uStage.cubemap", type: "uniform" },
+                { name: "stageWobblesky", glName: "uStage.wobblesky", type: "uniform" }
             ]) 
         };
 
@@ -529,6 +562,7 @@ function Display(canvas){
         gl.uniform2fv(program[prefix + "Scale"], stage.scale);
         gl.uniform1f(program[prefix + "Rotation"], stage.rotate);
         gl.uniform1f(program[prefix + "AlphaTest"], stage.alphaTest);
+        gl.uniform1i(program[prefix + "CubemapBits"], stage.cubemapBits);
     }
 
     function drawLights(gl, drawBuffer, camera){
@@ -536,6 +570,8 @@ function Display(canvas){
         var screenSize = this.size;
         var lights = drawBuffer.lights[Symbol.iterator]()
         var key, light;
+
+        var lastMaterial = null;
 
         gl.useProgram(program);
         gl.enableVertexAttribArray(program.positionAttribute);
@@ -593,8 +629,12 @@ function Display(canvas){
                 gl.bindTexture(gl.TEXTURE_2D, texture);
 
                 // Set any properties
-                setStageUniforms("specular", program, gl, material.specularStage);
-                setStageUniforms("diffuse", program, gl, material.diffuseStage);
+                if(lastMaterial != material){
+                    // TODO: Sort evironment by material.
+                    setStageUniforms("specular", program, gl, material.specularStage);
+                    setStageUniforms("diffuse", program, gl, material.diffuseStage);
+                    lastMaterial = material;
+                }
 
 
                 drawModel(gl, program, model);
@@ -619,6 +659,9 @@ function Display(canvas){
 
         setShaderUniforms(gl, program, camera);
 
+        var position = camera.transform.position;
+        gl.uniform3f(program.cameraPositionUniform, -position[0], -position[1], -position[2]);
+
         gl.depthFunc(gl.LEQUAL);
 
         gl.enable(gl.BLEND);
@@ -628,8 +671,22 @@ function Display(canvas){
             var material = model.material;
 
             material.stages.forEach(function(stage){
-                if(!stage.map){
+                if(stage.cubemapBits > 0){
+                    // Set the textures
+                    var skymap = stage.cubemap.getGlTexture(gl);
+            
+                    if(skymap.loaded){
+                        gl.activeTexture(gl.TEXTURE3);
+                        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skymap);
+                    }
+                }else if(!stage.map){
                     return;
+                }else{
+                    // Set the textures
+                    var texture = stage.map.getGlTexture(gl);
+            
+                    gl.activeTexture(gl.TEXTURE2);
+                    gl.bindTexture(gl.TEXTURE_2D, texture);
                 }
         
                 // Set the blend function
@@ -640,13 +697,8 @@ function Display(canvas){
 
                 // Set stage properties
                 setStageUniforms("stage", program, gl, stage);
+                gl.uniform4fv(program.stageWobblesky, stage.wobble);
         
-                // Set the textures
-                var texture = stage.map.getGlTexture(gl);
-        
-                gl.activeTexture(gl.TEXTURE2);
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-
                 drawModel(gl, program, model);
             });
         });
@@ -741,8 +793,8 @@ function Display(canvas){
     
     Display.prototype.generateStaticShadowMap = function(light){
         var gl = this.gl;
-        var shadowWidth = 1024;
-        var shadowHeight = 1024;
+        var shadowWidth = 512;
+        var shadowHeight = 512;
 
         var frameBuffer = this.shadowBuffer;
 
