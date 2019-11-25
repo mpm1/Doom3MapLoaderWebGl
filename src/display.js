@@ -1,4 +1,4 @@
-const lightNear = 0.01;
+const lightNear = 0.1;
 
 var lightStruct = `
 struct Light {
@@ -513,7 +513,7 @@ function Display(canvas){
         this.resize(canvas.width, canvas.height);
     }
 
-    function drawModel(gl, program, model){
+    function drawModel(gl, program, model, resetAttrib = true){
         var vert = model.vertecies;
         var index = model.indecies;
 
@@ -523,15 +523,17 @@ function Display(canvas){
             createIndexBuffer(gl, index);
         }
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
-        gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.positionOffset);
-        
-        if(program.setsTexture){
-            gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.textureOffset);
-        }
+        if(resetAttrib){
+            gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
+            gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.positionOffset);
+            
+            if(program.setsTexture){
+                gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.textureOffset);
+            }
 
-        if(program.setsNormal){
-            gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, true, ReadableVertex.stride, ReadableVertex.normalOffset);
+            if(program.setsNormal){
+                gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, true, ReadableVertex.stride, ReadableVertex.normalOffset);
+            }
         }
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.glBuffer);
@@ -669,6 +671,7 @@ function Display(canvas){
 
         drawBuffer.fullBrightModels.forEach(function(model){
             var material = model.material;
+            var resetAttrrib = true;
 
             material.stages.forEach(function(stage){
                 if(stage.cubemapBits > 0){
@@ -699,7 +702,8 @@ function Display(canvas){
                 setStageUniforms("stage", program, gl, stage);
                 gl.uniform4fv(program.stageWobblesky, stage.wobble);
         
-                drawModel(gl, program, model);
+                drawModel(gl, program, model, resetAttrrib);
+                resetAttrrib = false;
             });
         });
 
