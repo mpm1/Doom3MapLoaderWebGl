@@ -10,7 +10,7 @@ function Game(canvasPath, consoleOutputPath, consoleInputPath, consoleButtonPath
     this.console.addFunction("viewtexture", new ConsoleFunction("viewtexture", "Draws a specified texture to a canvas on the bottom of the screen.", this.viewTexture, this));
 
     var _this = this;
-    this.loadPk4("./test/q3dm2.pk4").then(function(pak){ _this.loadMap("q3dm2"); });
+    this.loadPk4("./test/q3dm1.pk4").then(function(pak){ _this.loadMap("q3dm1"); });
     //this.loadPk4("./test/amiens.pk4").then(function(pak){ _this.loadMap("mp/amiens"); });
     
 }

@@ -518,12 +518,12 @@ function Display(canvas){
         var index = model.indecies;
 
         //Create the buffers if they do not exist.
-        if(!vert.glBuffer){
-            createVertexBuffer(gl, vert);
-            createIndexBuffer(gl, index);
-        }
-
         if(resetAttrib){
+            if(!vert.glBuffer){
+                createVertexBuffer(gl, vert);
+                createIndexBuffer(gl, index);
+            }
+
             gl.bindBuffer(gl.ARRAY_BUFFER, vert.glBuffer);
             gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, false, ReadableVertex.stride, ReadableVertex.positionOffset);
             

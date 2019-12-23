@@ -1260,6 +1260,7 @@ function GameMap(mapName, pakFile){
         }
 
         // Sort the models for each light
+        console.log(drawBuffer.areas.size);
         drawBuffer.lights.forEach(function(light){
             light.models.sort(function(a,b){ 
                 if(a.material == b.material){
